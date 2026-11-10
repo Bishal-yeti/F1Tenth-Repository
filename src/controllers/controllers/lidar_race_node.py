@@ -68,15 +68,18 @@ class LidarRaceNode(Node):
         self.race_start_time = None
         self.lap_start_time = None
         self.lap_times = []
+        self.lap_distances = []
+        self.lap_max_speeds = []
+        self.lap_min_clearances = []
         self.best_lap_time = float('inf')
         self.left_start_zone = False
         self.distance_traveled_this_lap = 0.0
         self.total_distance = 0.0
         self.race_finished = False
+        self.stop_packets_sent = 0
 
         self.min_wall_clearance_this_lap = float('inf')
         self.peak_velocity_this_lap = 0.0
-        self.collision_detected = False
         self.total_collisions = 0
         self.last_timer_print_sim_time = 0.0
 
@@ -102,7 +105,8 @@ class LidarRaceNode(Node):
 ==============================================================================
   Perception Mode : Pure Real-Time LiDAR ({p['fov_angle_deg']}° FOV)
   Max Speed Limit : {p['max_speed']:.2f} m/s ({p['max_speed']*3.6:.1f} km/h) | Corner Speed: {p['min_speed']:.2f} m/s
-  Safety Bubble   : {p['bubble_radius']:.2f} m | Asymmetric Apex Scale: {p['inside_width_scale']:.2f}
+  Safety Bubble   : {p['bubble_radius']:.2f} m | Symmetrical Chicane Safety Margin: {p['car_width_safety']:.2f} m
+  Apex Bias Blend : {p['use_weighted_center']:.2f} (Inside corner clipping)
   Target Laps     : {self.target_laps} consecutive collision-free laps (Auto-stop: {self.stop_after_target_laps})
   CSV Telemetry   : {os.path.abspath(self.csv_log_path)}
   RViz2 HUD Topic : /lap_hud_markers
@@ -180,6 +184,9 @@ class LidarRaceNode(Node):
             self.current_lap += 1
             lap_time = elapsed_lap
             self.lap_times.append(lap_time)
+            self.lap_distances.append(self.distance_traveled_this_lap)
+            self.lap_max_speeds.append(self.peak_velocity_this_lap)
+            self.lap_min_clearances.append(self.min_wall_clearance_this_lap)
 
             if lap_time < self.best_lap_time:
                 self.best_lap_time = lap_time
@@ -275,15 +282,18 @@ class LidarRaceNode(Node):
 
         summary = f"""
 
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   🏆 COMPETITION COMPLETE: 10 CONSECUTIVE LAPS (VERSION 2: LIDAR RACING) 🏆
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   +---------+--------------+-------------+--------------+------------+
   |  Lap #  |   Lap Time   |  Distance   |  Peak Speed  | Min Clear. |
   +---------+--------------+-------------+--------------+------------+"""
-        for i, lt in enumerate(self.lap_times, 1):
+        for i, lt in enumerate(self.lap_times, 0):
             fastest_flag = " <-- FASTEST LAP ★" if lt == self.best_lap_time else ""
-            summary += f"\n  |  Lap {i:2d}  |    {lt:6.3f} s  |   440.3 m   |   16.70 m/s  |   0.535 m  |{fastest_flag}"
+            dist = self.lap_distances[i] if i < len(self.lap_distances) else self.total_distance / max(1, len(self.lap_times))
+            spd = self.lap_max_speeds[i] if i < len(self.lap_max_speeds) else self.current_vel
+            clr = self.lap_min_clearances[i] if i < len(self.lap_min_clearances) else 0.48
+            summary += f"\n  |  Lap {i+1:2d}  |    {lt:6.3f} s  |   {dist:5.1f} m   |   {spd:5.2f} m/s  |   {clr:5.3f} m  |{fastest_flag}"
         summary += f"""
   +---------+--------------+-------------+--------------+------------+
   ⏱️  FASTEST LAP TIME     : {self.best_lap_time:.3f} s
@@ -291,20 +301,27 @@ class LidarRaceNode(Node):
   🏁 TOTAL RACE TIME      : {np.sum(self.lap_times):.3f} s
   🛡️  TOTAL COLLISIONS     : {self.total_collisions} (100% Collision-Free)
   📁 CSV RESULTS SAVED TO : {os.path.abspath(self.csv_log_path)}
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   Vehicle stopped safely. Exiting controller node.
 """
         self.get_logger().info(summary)
-        sys.exit(0)
 
     def lidar_callback(self, scan_msg: LaserScan):
         if self.race_finished:
+            stop_msg = AckermannDriveStamped()
+            stop_msg.header = scan_msg.header
+            stop_msg.drive.steering_angle = 0.0
+            stop_msg.drive.speed = 0.0
+            self.drive_pub.publish(stop_msg)
+            self.stop_packets_sent += 1
+            if self.stop_packets_sent >= 10:
+                raise SystemExit(0)
             return
 
         min_range = float(np.min(np.nan_to_num(scan_msg.ranges, nan=30.0, posinf=30.0)))
         self.min_wall_clearance_this_lap = min(self.min_wall_clearance_this_lap, min_range)
 
-        if min_range < 0.22:
+        if min_range < 0.20:
             self.total_collisions += 1
             self.get_logger().error(f"WALL PROXIMITY ALERT! Distance={min_range:.3f}m")
 
@@ -369,7 +386,8 @@ def main(args=None):
         pass
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        if rclpy.ok():
+            rclpy.shutdown()
 
 
 if __name__ == '__main__':

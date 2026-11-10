@@ -21,35 +21,35 @@ import numpy as np
 
 DEFAULTS = dict(
     mode='ftg_pd',
-    # --- perception (SpeedMaster racing-line tuned & 10-lap collision-free verified) ---
+    # --- perception (10-lap collision-free verified on Sakhir_map) ---
     preprocess_conv_size=5,
-    max_lidar_dist=29.0,
-    disparity_thresh=0.3087,
-    car_width_safety=0.2911,
-    inside_width_scale=0.98,      # asymmetrical disparity scaling for apex tuck
+    max_lidar_dist=30.0,
+    disparity_thresh=0.32,
+    car_width_safety=0.33,
+    inside_width_scale=1.0,       # symmetrical disparity margin for stable chicane transitions
     fov_angle_deg=140.0,
-    bubble_radius=0.4873,
+    bubble_radius=0.50,
     gap_thresh=1.5,
-    best_point_conv_size=96,
-    use_weighted_center=0.06560953051188756,   # smooth apex target
-    gap_depth_weight=0.1887,      # score gaps by length * (mean_depth ** gap_depth_weight)
+    best_point_conv_size=80,
+    use_weighted_center=0.10,     # smooth apex target blend
+    gap_depth_weight=0.18,        # score gaps by length * (mean_depth ** gap_depth_weight)
     # --- steering ---
-    steer_gain=0.7709,            # ftg_pd / disparity proportional gain
-    steer_deriv_gain=0.1716,      # ftg_pd derivative gain (per new unique scan)
+    steer_gain=0.76,              # ftg_pd / disparity proportional gain
+    steer_deriv_gain=0.16,        # ftg_pd derivative gain (per new unique scan)
     pp_lookahead_k=0.30,          # ftg_pp: Ld = clip(k * v, Ld_min, Ld_max)
     pp_lookahead_min=1.5,
     pp_lookahead_max=5.0,
-    steer_smoothing=0.1089,       # low-pass filter on steering command
-    # --- speed (early trail-braking + corner-exit lookahead boost + straightaway deadband) ---
-    max_speed=18.0,               # high-speed straights unleashed!
-    min_speed=6.10,               # fast, stable corner rotation
+    steer_smoothing=0.09,         # low-pass filter on steering command
+    # --- speed (early trail-braking + chicane-safe kinematics) ---
+    max_speed=18.0,               # high-speed straights unleashed
+    min_speed=6.0,                # fast, stable corner rotation
     a_brake=7.95,
-    a_lat_max=13.0,
-    safety_margin=1.12,
+    a_lat_max=12.8,
+    safety_margin=1.15,
     front_cone_half=17,
-    exit_lookahead_blend=0.22,    # blends forward nose range with deepest exit-ray range
-    brake_entry_gain=0.14,        # early trail-braking proportional to corner closing rate * v
-    deadband_rad=0.038,           # 2.18° straightaway deadband on v_lat (prevents straightaway throttling)
+    exit_lookahead_blend=0.0,     # disabled false-acceleration in chicanes
+    brake_entry_gain=0.12,        # early trail-braking proportional to corner closing rate * v
+    deadband_rad=0.038,           # 2.18° straightaway deadband on v_lat
     narrow_corridor_width=0.0,    # 0.0 disables indoor hallway mode for race tracks like Sakhir
 )
 
@@ -240,24 +240,32 @@ class FollowGapCore:
                 p['min_speed'], p['max_speed'], p['a_brake'], p['a_lat_max'], p['safety_margin']
             )
             dynamic_margin = margin + p['brake_entry_gain'] * closing_rate * current_vel
-            if abs(alpha) < 0.25 and abs(steer) < 0.22:
+            if abs(alpha) < 0.20 and abs(steer) < 0.18 and front > 10.0 and tdist > 14.0:
                 blend = p['exit_lookahead_blend']
                 eff_front = (1.0 - blend) * front + blend * min(tdist, sdist * 1.25)
             else:
                 eff_front = front
             d_avail = max(0.0, min(eff_front, 1.15 * sdist) - dynamic_margin)
             eff = max(abs(steer), 0.72 * abs(alpha))
-            wall = float(np.clip((closest - 0.22) / 0.45, 0.55, 1.0))
 
         v_brake = np.sqrt(vmin ** 2 + 2.0 * ab * d_avail)
         if narrow:
             v_lat = np.sqrt(al / (np.tan(min(eff, MAX_STEER)) / WHEELBASE)) if eff > 0.015 else vmax
         else:
-            curv_eff = max(0.0, eff - p.get('deadband_rad', 0.040))
+            curv_eff = max(0.0, eff - p.get('deadband_rad', 0.038))
             v_lat = np.sqrt(al / (np.tan(min(curv_eff, MAX_STEER)) / WHEELBASE)) if curv_eff > 0.01 else vmax
-        speed = float(max(vmin, min(vmax, v_brake, v_lat) * wall))
+
+        base_speed = min(vmax, max(vmin, min(v_brake, v_lat)))
+
+        # Infallible active wall proximity safety dampener (allows smooth rotation if tight to wall)
+        closest_all = max(np.min(raw[self.min_idx:self.max_idx]), 0.1)
+        if closest_all < 0.45:
+            wall_factor = float(np.clip((closest_all - 0.20) / 0.25, 0.65, 1.0))
+            speed = float(max(4.0, base_speed * wall_factor))
+        else:
+            speed = float(base_speed)
 
         self.last_cmd = (steer, speed)
         self.last_debug = dict(best_idx=best, best_dist=float(proc[best]), target_angle=alpha,
-                               closest=closest, corridor=corridor)
+                               closest=closest_all, corridor=corridor)
         return self.last_cmd

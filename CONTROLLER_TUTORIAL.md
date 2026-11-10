@@ -3,8 +3,8 @@
 Complete documentation, algorithmic breakdown, code structure, execution guide, and oral defense reference for the **Autonomous Vehicles F1Tenth Competition Project**.
 
 > **Dual-Architecture Implementation:**
-> - **Version 1 (`gap_node.py`)**: *The Endurance Champion* — Guaranteed 10 consecutive collision-free laps (verified: **38.59 s** fastest lap, **39.02 s** average, 0 collisions, tagged in Git as `v1.0-stable`).
-> - **Version 2 (`lidar_race_node.py`)**: *The Real-Time LiDAR Racing Edition* — Specialized pure perception-driven controller using Cartesian point clouds, apex-clipping disparity extension, and friction-circle speed profiling (**38.10 s** offline / **38.60 s** ROS 2).
+> - **Version 1 (`gap_node.py`)**: *The Endurance Champion* — Guaranteed 10 consecutive collision-free laps (verified: **38.88 s** fastest lap, **39.08 s** average, 0 collisions, 0.534m min clearance, tagged in Git as `v1.0-stable`).
+> - **Version 2 (`lidar_race_node.py`)**: *The Real-Time LiDAR Dynamic Racing Edition* — Pure perception-driven racing controller with inside apex-clipping, kinematic trail braking, and unthrottled straightaways (**37.78 s** fastest lap, **38.20 s** average, 0 collisions, 0.445m min clearance, **8.82 s total lead** over 10 laps).
 
 ---
 
@@ -232,24 +232,63 @@ ros2 launch f1tenth_gym_ros gym_bridge_launch.py
 
 ## 7. Experimental Results on Sakhir GP (10 Consecutive Laps)
 
-Both controllers were validated across full 10-lap consecutive tests in the official F1Tenth physics engine (RK4 integration with Pacejka tire friction model).
+Both controllers were thoroughly benchmarked across full 10-lap consecutive tests in the official F1Tenth physics engine (RK4 integration with Pacejka tire friction model).
 
-### Version 2 Telemetry (`lidar_race_node`):
-| Lap # | Lap Time (s) | Best Lap (s) | Avg Lap (s) | Distance (m) | Peak Speed (m/s) | Min Wall Clearance (m) | Collisions |
-| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **1** | 39.37 s | 39.37 s | 39.37 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **2** | 38.71 s | 38.71 s | 39.04 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **3** | 39.09 s | 38.71 s | 39.06 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **4** | 38.89 s | 38.71 s | 39.01 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **5** | 39.25 s | 38.71 s | 39.06 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **6** | 38.73 s | 38.71 s | 39.01 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **7** | **38.60 s ★** | **38.60 s** | 38.95 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **8** | 38.86 s | 38.60 s | 38.94 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **9** | 39.55 s | 38.60 s | 39.00 s | 440.3 m | 16.70 m/s | 0.535 m | 0 |
-| **10** | 39.18 s | 38.60 s | **39.02 s** | 440.3 m | 16.70 m/s | 0.535 m | 0 |
+![Comparison Trajectory](docs/comparison_trajectories.png)
 
-- **Challenge 1 (10 Consecutive Laps Without Collisions)**: **PASSED** (10/10 laps, 0 collisions, automatic vehicle stop & summary printout after Lap 10).
-- **Challenge 2 (Fastest Lap Time)**: **38.59–38.60 seconds** in ROS 2 (**38.10 s** in offline qualifying setup; Total race time: **390.23 s**).
+### Side-by-Side Performance Comparison (10 Full Laps)
+
+| Metric | Version 1: Fast Centerline (`gap_node`) | Version 2: Real LiDAR Racing (`lidar_race_node`) | Advantage / Improvement |
+| :--- | :---: | :---: | :---: |
+| **Fastest Single Lap** | **38.880 s** (Lap 8) | **37.780 s** (Lap 9) | **⚡ -1.100 s / lap** |
+| **Average Lap Time** | **39.081 s** | **38.199 s** | **🚀 -0.882 s / lap** |
+| **Total 10-Lap Time** | **390.810 s** | **381.990 s** | **🏆 -8.820 s total lead** |
+| **Peak Straight Speed** | 15.58 m/s (56.1 km/h) | 15.91 m/s (57.3 km/h) | +0.33 m/s exit velocity |
+| **Corner Rotation Speed** | 6.00 m/s | 6.35 m/s | +0.35 m/s apex velocity |
+| **Global Min Wall Clearance** | **0.534 m** | **0.445 m** | Apex-clipping racing line |
+| **10-Lap Collisions** | **0 (100% Clean)** | **0 (100% Clean)** | Infallible safety dampener |
+
+---
+
+### Lap-by-Lap Telemetry Breakdown
+
+#### Version 1 Telemetry (`gap_node.py`):
+```
++---------+--------------+-------------+--------------+------------+
+|  Lap #  |   Lap Time   |  Distance   |  Peak Speed  | Min Clear. |
++---------+--------------+-------------+--------------+------------+
+|  Lap  1 |     39.730 s |     440.5 m |    15.47 m/s |    0.536 m |
+|  Lap  2 |     38.950 s |     440.3 m |    15.54 m/s |    0.538 m |
+|  Lap  3 |     39.270 s |     440.4 m |    15.52 m/s |    0.541 m |
+|  Lap  4 |     38.990 s |     440.3 m |    15.52 m/s |    0.543 m |
+|  Lap  5 |     38.980 s |     440.3 m |    15.49 m/s |    0.544 m |
+|  Lap  6 |     39.070 s |     440.4 m |    15.51 m/s |    0.534 m |
+|  Lap  7 |     38.970 s |     440.3 m |    15.51 m/s |    0.547 m |
+|  Lap  8 |     38.880 s |     440.3 m |    15.51 m/s |    0.547 m | <-- FASTEST LAP ★
+|  Lap  9 |     38.990 s |     440.3 m |    15.51 m/s |    0.546 m |
+|  Lap 10 |     38.980 s |     440.3 m |    15.58 m/s |    0.546 m |
++---------+--------------+-------------+--------------+------------+
+  ⏱️ FASTEST LAP TIME : 38.880 s | 📊 AVERAGE LAP TIME: 39.081 s | 🛡️ COLLISIONS: 0
+```
+
+#### Version 2 Telemetry (`lidar_race_node.py`):
+```
++---------+--------------+-------------+--------------+------------+
+|  Lap #  |   Lap Time   |  Distance   |  Peak Speed  | Min Clear. |
++---------+--------------+-------------+--------------+------------+
+|  Lap  1 |     38.820 s |     439.1 m |    15.79 m/s |    0.451 m |
+|  Lap  2 |     38.160 s |     438.8 m |    15.78 m/s |    0.445 m |
+|  Lap  3 |     38.170 s |     438.9 m |    15.84 m/s |    0.477 m |
+|  Lap  4 |     38.220 s |     438.9 m |    15.82 m/s |    0.474 m |
+|  Lap  5 |     38.290 s |     438.8 m |    15.76 m/s |    0.455 m |
+|  Lap  6 |     38.440 s |     438.9 m |    15.91 m/s |    0.463 m |
+|  Lap  7 |     38.210 s |     438.8 m |    15.88 m/s |    0.448 m |
+|  Lap  8 |     37.920 s |     438.6 m |    15.88 m/s |    0.460 m |
+|  Lap  9 |     37.780 s |     438.5 m |    15.91 m/s |    0.465 m | <-- FASTEST LAP ★
+|  Lap 10 |     37.980 s |     438.6 m |    15.91 m/s |    0.454 m |
++---------+--------------+-------------+--------------+------------+
+  ⏱️ FASTEST LAP TIME : 37.780 s | 📊 AVERAGE LAP TIME: 38.199 s | 🛡️ COLLISIONS: 0
+```
 
 ---
 
@@ -258,24 +297,30 @@ Both controllers were validated across full 10-lap consecutive tests in the offi
 Use these concise technical answers during your **Individual Oral Project Defense**:
 
 1. **Q: Why did you add a Disparity Extender on top of the standard Safety Bubble?**
-   - **A:** The standard safety bubble only masks rays around the *single closest* LiDAR point. On a track like Sakhir GP with chicanes and hairpins, a second corner apex slightly further ahead creates a sharp depth jump (disparity) in the LiDAR scan. The Disparity Extender detects any depth jump $> 0.31\text{ m}$ and masks it by the car's width ($0.29\text{ m}$), preventing the car from clipping inside walls at high speed.
+   - **A:** The standard safety bubble only masks rays around the *single closest* LiDAR point. On a track like Sakhir GP with chicanes and hairpins, a second corner apex slightly further ahead creates a sharp depth jump (disparity) in the LiDAR scan. The Disparity Extender detects any depth jump $> 0.32\text{ m}$ and masks it by the car's width ($0.33\text{ m}$), preventing the car from clipping inside walls at high speed.
 
-2. **Q: How do you select the best point inside the maximum gap, and why not just pick the furthest ray?**
-   - **A:** Picking the single furthest ray makes the steering noisy and often aims right next to a wall edge. Instead, we apply a 96-beam moving-average convolution across the gap to find the center of the deepest open sub-corridor ($i_{\text{peak}}$), and then take a weighted average ($93.4\%\, i_{\text{peak}} + 6.6\%\, i_{\text{mid}}$) with the gap's geometric center. This pulls the vehicle into an apex-hugging racing line rather than staying stuck in the track centerline.
+2. **Q: Why did the controller previously brush the wall or crash on Lap 3 in chicanes, and how was it permanently fixed?**
+   - **A:** We identified two subtle bugs in rapid S-curve transitions (e.g. at $(33.2, -20.2)$ and $(19.8, 44.0)$):
+     1. *Chicane False Acceleration*: When transitioning from a left turn to a right turn, the steering wheel unwinds through zero ($\delta \approx 0, \alpha \approx 0$). Naive corner-exit lookahead logic interpreted this zero-crossing as "straightaway exit", blending the forward range with a distant 15–20m corridor ray and commanding 16 m/s straight into the incoming chicane wall. We resolved this by removing exit blending in chicanes (`exit_lookahead_blend = 0.0`).
+     2. *Wall Factor Override*: The wall proximity dampener was originally nested as `max(vmin, min(vmax, ...) * wall)`. When the car approached within 0.35m of a wall, `wall` scaled speed down to 4.0 m/s, but `max(vmin, ...)` overrode it and forced speed to remain at $\ge 6.1\text{ m/s}$, preventing tight vehicle rotation. We uncoupled the wall dampener so it can reduce speed down to $4.0\text{ m/s}$ whenever clearance drops below $0.45\text{ m}$. With this fix, both controllers completed 10/10 consecutive laps with zero collisions and $> 0.44\text{ m}$ clearance.
 
-3. **Q: How does your controller achieve 16.68 m/s on straights without crashing into Sakhir's tight hairpins?**
-   - **A:** If speed only depended on steering angle, the car would arrive at the end of a straight at $16+\text{ m/s}$ with $\delta \approx 0$ and fail to brake in time. Our speed controller computes a physics-based kinematic braking limit $v_{\text{brake}} = \sqrt{v_{\min}^2 + 2 a_{\text{brake}} d_{\text{avail}}}$ from the forward LiDAR cone, combined with a lateral tire friction limit $v_{\text{lat}} = \sqrt{a_{\text{lat,max}} / \kappa}$ from the bicycle model curvature $\kappa = \tan(|\delta|)/L$. Furthermore, `brake_entry_gain = 0.14` expands the braking margin proportionally to closing rate $\dot{d}_{\text{close}} \cdot v$, initiating braking early before hairpins.
+3. **Q: How does Version 2 (LiDAR Racing Line) gain 1.1 seconds per lap over Version 1 (Centerline)?**
+   - **A:** Version 2 modifies the reactive control parameters to mimic human racing line principles purely through real-time LiDAR:
+     - *Apex Bias (`use_weighted_center = 0.08`)*: Gives 92% weight to the deepest exit ray rather than the geometric center, pulling the vehicle tight against the inside curb at corner apexes to shorten path length ($438.5\text{ m}$ vs $440.4\text{ m}$).
+     - *Higher Cornering Speed ($v_{\min} = 6.35\text{ m/s}$, $a_{\text{lat}} = 13.2\text{ m/s}^2$)*: Pushes the tire friction envelope to carry higher minimum speed through medium and high-speed bends.
+     - *Earlier Exit Acceleration*: The shallower cornering arc allows the car to reach full throttle sooner, gaining $+0.33\text{ m/s}$ extra velocity down the ensuing straights.
 
-4. **Q: Why did you limit the LiDAR Field-of-View (FOV) to 140° instead of the full 180°–270°?**
+4. **Q: How does your controller achieve 15.91 m/s on straights without crashing into Sakhir's tight hairpins?**
+   - **A:** If speed only depended on steering angle, the car would arrive at the end of a straight at $16+\text{ m/s}$ with $\delta \approx 0$ and fail to brake in time. Our speed controller computes a physics-based kinematic braking limit $v_{\text{brake}} = \sqrt{v_{\min}^2 + 2 a_{\text{brake}} d_{\text{avail}}}$ from the forward LiDAR cone, combined with a lateral tire friction limit $v_{\text{lat}} = \sqrt{a_{\text{lat,max}} / \kappa}$ from the bicycle model curvature $\kappa = \tan(|\delta|)/L$. Furthermore, `brake_entry_gain = 0.12` expands the braking margin proportionally to closing rate $\dot{d}_{\text{close}} \cdot v$, initiating braking early before hairpins.
+
+5. **Q: Why did you limit the LiDAR Field-of-View (FOV) to 140° instead of the full 180°–270°?**
    - **A:** An overly wide scanner ($\pm 87.5^\circ$ or $175^\circ$) looks behind the front axle into the rear straightaway. In a sharp hairpin, the forward opening can temporarily drop to $1.4\text{ m}$ while the open circuit behind is $> 2.0\text{ m}$. With an unconstrained FOV, `find_max_gap` would mistakenly pick the backwards-facing gap, violently flipping the steering angle by up to $140^\circ$ mid-corner. Restricting the perception window to $\pm 70.0^\circ$ ($140.0^\circ$) eliminates backward false gaps while seeing far through corner exits.
 
-5. **Q: How did you prevent the vehicle from losing top speed on high-speed straights due to tire friction limits?**
-   - **A:** We introduced a straightaway steering deadband `deadband_rad = 0.038` ($2.18^\circ$) in the lateral acceleration equation. Small LiDAR jitter on straightaways causes high-frequency micro-steer of $1^\circ$–$2^\circ$. Without the deadband, $v_{\text{lat}} = \sqrt{a_{\text{lat,max}} / \kappa}$ would throttle the car down to $13\text{ m/s}$. The deadband ignores curvature below $2.18^\circ$, enabling sustained speeds of $16.68\text{ m/s}$ (60 km/h) down the main straight.
+6. **Q: How did you prevent the vehicle from losing top speed on high-speed straights due to tire friction limits?**
+   - **A:** We introduced a straightaway steering deadband `deadband_rad = 0.038` ($2.18^\circ$) in the lateral acceleration equation. Small LiDAR jitter on straightaways causes high-frequency micro-steer of $1^\circ$–$2^\circ$. Without the deadband, $v_{\text{lat}} = \sqrt{a_{\text{lat,max}} / \kappa}$ would throttle the car down to $13\text{ m/s}$. The deadband ignores curvature below $2.18^\circ$, enabling sustained speeds of $15.91\text{ m/s}$ (57.3 km/h) down the main straight.
 
-6. **Q: How does the automatic Lap Counter avoid false triggers at the start of the race?**
+7. **Q: How does the automatic Lap Counter avoid false triggers at the start of the race?**
    - **A:** We use spatial and temporal hysteresis. When the node starts, it latches the initial odometry pose $(x_0, y_0)$. The lap trigger only arms (`left_start_zone = True`) after the vehicle travels more than $5.0\text{ m}$ Euclidean distance from the start pose and accumulates at least $20.0\text{ m}$ of path length. A lap is counted only when the armed vehicle re-enters a $2.4\text{ m}$ gate around $(x_0, y_0)$ and at least $5.0\text{ s}$ have elapsed.
 
-7. **Q: What is the architectural difference between Version 1 (`gap_node.py`) and Version 2 (`lidar_race_node.py`)?**
-   - **A:** While both controllers use real-time LiDAR scans without precomputed waypoints or offline maps, they are tuned for the two competition challenges:
-     - **Version 1 (`gap_node.py`)** is configured for **Challenge 1 (Endurance)**: it uses conservative safety margins ($1.12\text{ m}$), symmetric apex disparity scaling ($0.98$), and a stable $18.0\text{ m/s}$ top speed to guarantee 10/10 consecutive collision-free laps (verified: $38.59\text{ s}$ best, $39.02\text{ s}$ average).
-     - **Version 2 (`lidar_race_node.py`)** is configured for **Challenge 2 (Qualifying Pace)**: it employs high-sensitivity disparity detection ($0.31\text{ m}$), asymmetric inside-apex tuck ($0.97$), and an aggressive corner-exit lookahead boost ($\beta = 0.23$) to unleash maximum cornering rotation and acceleration down straightaways ($38.60\text{ s}$ ROS 2, $38.10\text{ s}$ offline qualifying).
+8. **Q: How does the vehicle stop after completing Lap 10 and output final results?**
+   - **A:** When `current_lap >= 10`, the lap checker sets `race_finished = True` and triggers `_finish_race_and_stop()`. The node prints the formatted 10-lap ASCII summary table to the console, flushes all telemetry to CSV, publishes 10 zero-velocity brake commands (`speed = 0.0, steer = 0.0`), and exits cleanly with `raise SystemExit(0)`.
