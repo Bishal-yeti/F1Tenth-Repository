@@ -1,6 +1,23 @@
 # F1TENTH Simulator for Autonomous Vehicle Competitions
 The F1TENTH simulator for ROS 2 is a simulation environment designed to test control, navigation, and planning algorithms on a 1/10 scale autonomous vehicle.
 
+> ### 🏆 Sakhir GP Competition Project — Follow-the-Gap Controller, Lap Counter & Lap Timer
+> Looking for the **Competition Reactive Controller documentation, code architecture, execution steps, and Oral Defense guide**?
+> - 📘 **Full Technical Tutorial**: [CONTROLLER_TUTORIAL.md](CONTROLLER_TUTORIAL.md)
+> - 🏎️ **Controller Implementation**: [`src/controllers/controllers/gap_node.py`](src/controllers/controllers/gap_node.py) & [`src/controllers/controllers/ftg_core.py`](src/controllers/controllers/ftg_core.py)
+> - 📊 **10-Lap Sakhir GP Telemetry**: [`lap_times_sakhir.csv`](lap_times_sakhir.csv) (**Best Lap: 38.59s ROS / 38.10s offline**, **Avg: 39.02s**, **Peak Speed: 16.68 m/s**, **10/10 Collision-Free Laps + Auto-Stop**)
+>
+> **Quick Competition Launch (Sakhir GP):**
+> ```bash
+> # Terminal 1: Launch Simulator + RViz2 (with 3D Lap HUD enabled)
+> cd ~/F1Tenth-Repository && source /opt/ros/humble/setup.bash && source install/setup.bash
+> ros2 launch f1tenth_gym_ros gym_bridge_launch.py
+>
+> # Terminal 2: Launch Reactive Follow-the-Gap Controller + Lap Counter & Timer
+> cd ~/F1Tenth-Repository && source /opt/ros/humble/setup.bash && source install/setup.bash
+> ros2 run controllers gap_node
+> ```
+
 **Features of the F1TENTH Simulator in ROS 2**
 - Publishes and subscribes to ROS 2 topics, enabling interaction with virtual sensors and actuators.
 - Simulates sensors such as LiDAR and odometry.

@@ -42,16 +42,16 @@ bridge:
     scan_beams: 1080
 
     # map parameters
-    map_path: '/home/your_user/F1Tenth-Repository/src/f1tenth_gym_ros/maps/levine'
+    map_path: '/home/yeti/F1Tenth-Repository/src/f1tenth_gym_ros/maps/Sakhir_map'
     map_img_ext: '.png'
 
     # opponent parameters
     num_agent: 1
 
     # ego starting pose on map
-    sx: 0.0
-    sy: 0.0
-    stheta: 0.0
+    sx: 30.78
+    sy: -22.72
+    stheta: -2.635
 
     # opp starting pose on map
     sx1: 9.5
