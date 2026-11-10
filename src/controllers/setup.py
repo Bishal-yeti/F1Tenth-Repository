@@ -23,6 +23,7 @@ setup(
             'ttc_node = controllers.ttc_node:main',
             'pid_node = controllers.pid_node:main',
             'gap_node = controllers.gap_node:main',
+            'lidar_race_node = controllers.lidar_race_node:main',
             'purepursuit_node = controllers.purepursuit_node:main',
             'rrt_node = controllers.rrt_node:main',
             'mpc_node = controllers.mpc_node:main',

@@ -1,11 +1,12 @@
 # F1TENTH Simulator for Autonomous Vehicle Competitions
 The F1TENTH simulator for ROS 2 is a simulation environment designed to test control, navigation, and planning algorithms on a 1/10 scale autonomous vehicle.
 
-> ### 🏆 Sakhir GP Competition Project — Follow-the-Gap Controller, Lap Counter & Lap Timer
+> ### 🏆 Sakhir GP Competition Project — Dual Reactive Controller Architecture
 > Looking for the **Competition Reactive Controller documentation, code architecture, execution steps, and Oral Defense guide**?
 > - 📘 **Full Technical Tutorial**: [CONTROLLER_TUTORIAL.md](CONTROLLER_TUTORIAL.md)
-> - 🏎️ **Controller Implementation**: [`src/controllers/controllers/gap_node.py`](src/controllers/controllers/gap_node.py) & [`src/controllers/controllers/ftg_core.py`](src/controllers/controllers/ftg_core.py)
-> - 📊 **10-Lap Sakhir GP Telemetry**: [`lap_times_sakhir.csv`](lap_times_sakhir.csv) (**Best Lap: 38.59s ROS / 38.10s offline**, **Avg: 39.02s**, **Peak Speed: 16.68 m/s**, **10/10 Collision-Free Laps + Auto-Stop**)
+> - 🛡️ **Version 1 (Endurance Champion — 10 Laps Guaranteed)**: [`src/controllers/controllers/gap_node.py`](src/controllers/controllers/gap_node.py) (Git tag: `v1.0-stable`, Best Lap: **38.59 s**, 0 Collisions)
+> - ⚡ **Version 2 (Real-Time LiDAR Racing — Qualifying Edition)**: [`src/controllers/controllers/lidar_race_node.py`](src/controllers/controllers/lidar_race_node.py) (Best Lap: **38.60 s** ROS / **38.10 s** offline, 0 Collisions)
+> - 📊 **Telemetry CSV Logs**: [`lap_times_sakhir.csv`](lap_times_sakhir.csv) and [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv)
 >
 > **Quick Competition Launch (Sakhir GP):**
 > ```bash
@@ -13,9 +14,13 @@ The F1TENTH simulator for ROS 2 is a simulation environment designed to test con
 > cd ~/F1Tenth-Repository && source /opt/ros/humble/setup.bash && source install/setup.bash
 > ros2 launch f1tenth_gym_ros gym_bridge_launch.py
 >
-> # Terminal 2: Launch Reactive Follow-the-Gap Controller + Lap Counter & Timer
+> # Terminal 2 (Option A): Launch Version 1 (Endurance Mode — 10 Consecutive Collision-Free Laps)
 > cd ~/F1Tenth-Repository && source /opt/ros/humble/setup.bash && source install/setup.bash
 > ros2 run controllers gap_node
+>
+> # Terminal 2 (Option B): Launch Version 2 (Qualifying Mode — Real-Time LiDAR Dynamic Racing)
+> cd ~/F1Tenth-Repository && source /opt/ros/humble/setup.bash && source install/setup.bash
+> ros2 run controllers lidar_race_node
 > ```
 
 **Features of the F1TENTH Simulator in ROS 2**
