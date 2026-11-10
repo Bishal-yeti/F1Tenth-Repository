@@ -21,7 +21,7 @@ import numpy as np
 
 DEFAULTS = dict(
     mode='ftg_pd',
-    # --- perception (10-lap collision-free verified on Sakhir_map) ---
+    # --- perception (10-lap collision-free verified on Sakhir_map and Zandvoort_map) ---
     preprocess_conv_size=5,
     max_lidar_dist=30.0,
     disparity_thresh=0.32,
@@ -39,7 +39,7 @@ DEFAULTS = dict(
     pp_lookahead_k=0.30,          # ftg_pp: Ld = clip(k * v, Ld_min, Ld_max)
     pp_lookahead_min=1.5,
     pp_lookahead_max=5.0,
-    steer_smoothing=0.09,         # low-pass filter on steering command
+    steer_smoothing=0.12,         # low-pass filter on steering command (clean straightaways & cornering)
     # --- speed (early trail-braking + chicane-safe kinematics) ---
     max_speed=18.0,               # high-speed straights unleashed
     min_speed=6.0,                # fast, stable corner rotation
@@ -259,9 +259,9 @@ class FollowGapCore:
 
         # Infallible active wall proximity safety dampener (allows smooth rotation if tight to wall)
         closest_all = max(np.min(raw[self.min_idx:self.max_idx]), 0.1)
-        if closest_all < 0.45:
-            wall_factor = float(np.clip((closest_all - 0.20) / 0.25, 0.65, 1.0))
-            speed = float(max(4.0, base_speed * wall_factor))
+        if closest_all < 0.48:
+            wall_factor = float(np.clip((closest_all - 0.20) / 0.28, 0.65, 1.0))
+            speed = float(max(4.2, base_speed * wall_factor))
         else:
             speed = float(base_speed)
 

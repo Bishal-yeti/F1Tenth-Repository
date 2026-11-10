@@ -60,6 +60,9 @@ class ReactiveFollowGap(Node):
         self.declare_parameter('stop_after_target_laps', True)
         self.declare_parameter('auto_reset_on_start', True)
         self.declare_parameter('csv_log_path', 'lap_times_sakhir.csv')
+        self.declare_parameter('min_lap_distance', 280.0)
+        self.declare_parameter('min_lap_duration', 20.0)
+        self.declare_parameter('gate_radius', 2.4)
 
         # Build core parameter dictionary from ROS parameters
         core_params = {}
@@ -77,6 +80,9 @@ class ReactiveFollowGap(Node):
         self.stop_after_target_laps = bool(self.get_parameter('stop_after_target_laps').value)
         self.auto_reset_on_start = bool(self.get_parameter('auto_reset_on_start').value)
         self.csv_log_path = str(self.get_parameter('csv_log_path').value)
+        self.min_lap_distance = float(self.get_parameter('min_lap_distance').value)
+        self.min_lap_duration = float(self.get_parameter('min_lap_duration').value)
+        self.gate_radius = float(self.get_parameter('gate_radius').value)
 
         # Expose convenience attributes
         self.prev_steer = 0.0
@@ -300,16 +306,22 @@ class ReactiveFollowGap(Node):
             self.race_start_time = now_sec
             self.last_status_print_time = now_sec
 
-        sx, sy, _ = self.start_pose
+        sx, sy, yaw0 = self.start_pose
         dist_to_start = float(np.hypot(x - sx, y - sy))
         current_lap_elapsed = now_sec - self.lap_start_time
 
-        # Arm lap trigger once the car leaves the 5.0m start radius and travels at least 50m
-        if dist_to_start > 5.0 and self.lap_distance > 50.0:
+        # Arm lap trigger once the car leaves the start zone and covers significant track distance (>150m)
+        if dist_to_start > 8.0 and self.lap_distance > 150.0:
             self.left_start_zone = True
 
-        # Trigger lap completion when crossing back within 2.2m of start pose
-        elif self.left_start_zone and dist_to_start < 2.2 and current_lap_elapsed > 10.0:
+        # Heading difference check relative to start line direction (must be moving forward)
+        yaw_diff = abs(np.arctan2(np.sin(yaw - yaw0), np.cos(yaw - yaw0)))
+
+        # Trigger lap completion when crossing start line in the forward direction
+        # Enforces minimum track length (>220m) and duration (>18s) to physically prevent false triggers
+        if (self.left_start_zone and dist_to_start < self.gate_radius and
+            self.lap_distance > self.min_lap_distance and
+            current_lap_elapsed > self.min_lap_duration and yaw_diff < 1.0):
             self.current_lap += 1
             lap_time = current_lap_elapsed
             self.lap_times.append(lap_time)

@@ -127,13 +127,15 @@ class LidarRaceNode(Node):
         self.current_vel = float(np.hypot(vx, vy))
         self.peak_velocity_this_lap = max(self.peak_velocity_this_lap, self.current_vel)
 
+        q = msg.pose.pose.orientation
+        siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
+        cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
+        yaw = float(np.arctan2(siny_cosp, cosy_cosp))
+        self.current_yaw = yaw
+
         t_sim = self._sim_time(msg.header.stamp)
 
         if self.start_pose is None:
-            q = msg.pose.pose.orientation
-            siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
-            cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-            yaw = float(np.arctan2(siny_cosp, cosy_cosp))
             self.start_pose = (x, y, yaw)
             self.race_start_time = t_sim
             self.lap_start_time = t_sim
@@ -169,18 +171,23 @@ class LidarRaceNode(Node):
         if self.race_finished or self.start_pose is None:
             return
 
-        x0, y0, _ = self.start_pose
+        x0, y0, yaw0 = self.start_pose
         x, y = self.current_pose
         dist_to_start = float(np.hypot(x - x0, y - y0))
 
-        if dist_to_start > 5.0 and self.distance_traveled_this_lap > 20.0:
+        if dist_to_start > 8.0 and self.distance_traveled_this_lap > 150.0:
             self.left_start_zone = True
 
         gate_radius = 2.4
-        min_lap_duration = 5.0
+        min_lap_duration = 20.0
+        min_lap_distance = 280.0
         elapsed_lap = t_sim - (self.lap_start_time or t_sim)
 
-        if self.left_start_zone and dist_to_start < gate_radius and elapsed_lap > min_lap_duration:
+        yaw_diff = abs(np.arctan2(np.sin(self.current_yaw - yaw0), np.cos(self.current_yaw - yaw0)))
+
+        if (self.left_start_zone and dist_to_start < gate_radius and
+            elapsed_lap > min_lap_duration and self.distance_traveled_this_lap > min_lap_distance and
+            yaw_diff < 1.0):
             self.current_lap += 1
             lap_time = elapsed_lap
             self.lap_times.append(lap_time)
