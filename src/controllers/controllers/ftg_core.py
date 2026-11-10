@@ -138,6 +138,15 @@ class FollowGapCore:
             score = lengths * (depth ** w)
         else:
             score = lengths
+
+        # Directional consistency: when actively cornering, penalize gaps on the opposite
+        # hemisphere that would cause violent pendulum oscillations or bite dead-end runoff bait
+        if abs(self.prev_steer) > 0.08 and len(starts) > 1:
+            gap_angles = np.array([self.angles[(s + e) // 2] for s, e in zip(starts, ends)])
+            delta_angles = np.abs(gap_angles - self.prev_target_angle)
+            align_factors = np.maximum(0.25, np.cos(delta_angles / 2.0)) ** 2
+            score = score * align_factors
+
         k = int(np.argmax(score))
         return int(starts[k]), int(ends[k])
 

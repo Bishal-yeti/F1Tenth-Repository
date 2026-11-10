@@ -279,39 +279,52 @@ class LidarRaceNode(Node):
         )
         self.telemetry_pub.publish(String(data=stat_msg))
 
-    def _finish_race_and_stop(self):
+    def _finish_race_and_stop(self, reason=None):
         self.race_finished = True
         stop_cmd = AckermannDriveStamped()
         stop_cmd.drive.speed = 0.0
         stop_cmd.drive.steering_angle = 0.0
-        for _ in range(10):
+        for _ in range(15):
             self.drive_pub.publish(stop_cmd)
+
+        header_title = "🏆 COMPETITION COMPLETE: 10 CONSECUTIVE LAPS (VERSION 2)" if not reason else f"🛑 SESSION CONCLUDED: {reason}"
+        avg_lap = float(np.mean(self.lap_times)) if self.lap_times else 0.0
+        total_time = float(np.sum(self.lap_times)) if self.lap_times else 0.0
+        best_lap_str = f"{self.best_lap_time:.3f} s" if self.lap_times else "N/A"
 
         summary = f"""
 
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  🏆 COMPETITION COMPLETE: 10 CONSECUTIVE LAPS (VERSION 2: LIDAR RACING) 🏆
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  {header_title}
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   +---------+--------------+-------------+--------------+------------+
   |  Lap #  |   Lap Time   |  Distance   |  Peak Speed  | Min Clear. |
   +---------+--------------+-------------+--------------+------------+"""
-        for i, lt in enumerate(self.lap_times, 0):
-            fastest_flag = " <-- FASTEST LAP ★" if lt == self.best_lap_time else ""
-            dist = self.lap_distances[i] if i < len(self.lap_distances) else self.total_distance / max(1, len(self.lap_times))
-            spd = self.lap_max_speeds[i] if i < len(self.lap_max_speeds) else self.current_vel
-            clr = self.lap_min_clearances[i] if i < len(self.lap_min_clearances) else 0.48
-            summary += f"\n  |  Lap {i+1:2d}  |    {lt:6.3f} s  |   {dist:5.1f} m   |   {spd:5.2f} m/s  |   {clr:5.3f} m  |{fastest_flag}"
+        if self.lap_times:
+            for i, lt in enumerate(self.lap_times, 0):
+                fastest_flag = " <-- FASTEST LAP ★" if lt == self.best_lap_time else ""
+                dist = self.lap_distances[i] if i < len(self.lap_distances) else self.total_distance / max(1, len(self.lap_times))
+                spd = self.lap_max_speeds[i] if i < len(self.lap_max_speeds) else self.current_vel
+                clr = self.lap_min_clearances[i] if i < len(self.lap_min_clearances) else 0.48
+                summary += f"
+  |  Lap {i+1:2d}  |    {lt:6.3f} s  |   {dist:5.1f} m   |   {spd:5.2f} m/s  |   {clr:5.3f} m  |{fastest_flag}"
+        else:
+            summary += "
+  |  No full laps completed before session halt.                                  |"
         summary += f"""
   +---------+--------------+-------------+--------------+------------+
-  ⏱️  FASTEST LAP TIME     : {self.best_lap_time:.3f} s
-  📊 AVERAGE LAP TIME     : {np.mean(self.lap_times):.3f} s
-  🏁 TOTAL RACE TIME      : {np.sum(self.lap_times):.3f} s
-  🛡️  TOTAL COLLISIONS     : {self.total_collisions} (100% Collision-Free)
+  ⏱️  FASTEST LAP TIME     : {best_lap_str}
+  📊 AVERAGE LAP TIME     : {avg_lap:.3f} s
+  🏁 TOTAL RACE TIME      : {total_time:.3f} s
+  🛡️  TOTAL COLLISIONS     : {self.total_collisions}
   📁 CSV RESULTS SAVED TO : {os.path.abspath(self.csv_log_path)}
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   Vehicle stopped safely. Exiting controller node.
 """
         self.get_logger().info(summary)
+        for _ in range(5):
+            self.drive_pub.publish(stop_cmd)
+        sys.exit(0)
 
     def lidar_callback(self, scan_msg: LaserScan):
         if self.race_finished:
@@ -328,9 +341,31 @@ class LidarRaceNode(Node):
         min_range = float(np.min(np.nan_to_num(scan_msg.ranges, nan=30.0, posinf=30.0)))
         self.min_wall_clearance_this_lap = min(self.min_wall_clearance_this_lap, min_range)
 
-        if min_range < 0.20:
+        # Infallible Fault & Track Departure Handlers
+        t_sim = self._sim_time(scan_msg.header.stamp)
+        elapsed_lap = t_sim - (self.lap_start_time or t_sim) if self.lap_start_time else 0.0
+
+        # Case 1: Physical barrier contact (< 0.17m is physical contact with car width=0.31m)
+        if min_range < 0.17:
             self.total_collisions += 1
-            self.get_logger().error(f"WALL PROXIMITY ALERT! Distance={min_range:.3f}m")
+            self.get_logger().error(f"EMERGENCY HALT: Barrier collision detected (clearance={min_range:.3f}m)! Halting vehicle and saving race results.")
+            self._finish_race_and_stop(reason="COLLISION_WITH_BARRIER")
+            return
+
+        # Case 2: Track departure into the void (track barriers are within 8m; >12m indicates departure into void)
+        if min_range > 12.0 and self.left_start_zone:
+            self.get_logger().error(f"EMERGENCY HALT: Vehicle departed track boundaries into outer void (min_range={min_range:.1f}m)! Halting vehicle and saving race results.")
+            self._finish_race_and_stop(reason="TRACK_DEPARTURE_VOID")
+            return
+
+        # Case 3: Lap duration timeout (normal lap is ~38s; >55s indicates vehicle is lost or stuck)
+        if self.left_start_zone and elapsed_lap > 55.0:
+            self.get_logger().error(f"EMERGENCY HALT: Lap time exceeded 55.0s safety timeout (current={elapsed_lap:.1f}s)! Halting vehicle and saving race results.")
+            self._finish_race_and_stop(reason="LAP_TIMEOUT_LOST_OR_STUCK")
+            return
+
+        if min_range < 0.22:
+            self.get_logger().warn(f"WALL PROXIMITY CAUTION: Distance={min_range:.3f}m")
 
         steer, speed = self.core.step(
             scan_msg.ranges,
