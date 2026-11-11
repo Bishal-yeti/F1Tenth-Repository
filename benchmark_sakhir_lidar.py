@@ -1,7 +1,7 @@
 import numpy as np
 import gym, f110_gym, yaml, sys, os, csv
 sys.path.insert(0, os.path.abspath("src/controllers"))
-from controllers.lidar_race_core import RealLidarRaceCore
+from controllers.lidar_race_core import RealLidarRaceCore, PACE_TRIMS
 
 with open("src/f1tenth_gym_ros/config/sim.yaml") as f:
     conf = yaml.safe_load(f)["bridge"]["ros__parameters"]
@@ -14,7 +14,7 @@ print(f"Map: {map_path}, Start: ({sx}, {sy}, {stheta})")
 env = gym.make("f110_gym:f110-v0", map=map_path, map_ext=map_ext, num_agents=1)
 obs, _, _, _ = env.reset(np.array([[sx, sy, stheta]]))
 
-core = RealLidarRaceCore()
+core = RealLidarRaceCore(adaptive_pace=True)
 
 dist = 0.0
 prev_pos = np.array([sx, sy])
@@ -36,27 +36,31 @@ for step in range(50000): # ~500s (up to 12 laps)
     dist += float(np.linalg.norm(cur_pos - prev_pos))
     prev_pos = cur_pos
     time_elapsed += 0.01
-    
+
     cur_lap_time = time_elapsed - lap_start_time
     cur_lap_dist = dist - lap_start_dist
     d_to_start = float(np.hypot(px - sx, py - sy))
     min_scan = float(np.min(scans))
     min_clear = min(min_clear, min_scan)
     max_speed = max(max_speed, vx)
-    
+
+    core.check_mid_lap_safety(min_scan)
     steer, speed = core.step(scans, -2.35, 4.7/1080.0, vx)
     obs, _, done, info = env.step(np.array([[steer, speed]]))
-    
+
     if env.collisions[0] == 1.0:
         collisions += 1
         print(f"COLLISION at step {step} (t={time_elapsed:.2f}s, dist={dist:.1f}m, pos=({px:.2f}, {py:.2f}), min_clear={min_clear:.3f}m)")
         break
-        
+
     yaw_diff = abs(np.arctan2(np.sin(pth - stheta), np.cos(pth - stheta)))
-    # On Sakhir (track length ~440m), check lap completion
     if cur_lap_dist > 400.0 and d_to_start < 2.5 and yaw_diff < 1.0:
-        laps.append((lap_num, cur_lap_time, cur_lap_dist, max_speed, min_clear))
-        print(f"Lap {lap_num:2d} finished: {cur_lap_time:6.3f}s | Dist: {cur_lap_dist:6.2f}m | Peak: {max_speed:5.2f}m/s | MinClear: {min_clear:5.3f}m")
+        used_trim = core.trim_label
+        gain_vs_lap1 = (laps[0][1] - cur_lap_time) if laps else 0.0
+        gain_vs_prev = (laps[-1][1] - cur_lap_time) if laps else 0.0
+        laps.append((lap_num, cur_lap_time, cur_lap_dist, max_speed, min_clear, used_trim, gain_vs_lap1, gain_vs_prev))
+        print(f"Lap {lap_num:2d} [{used_trim}] finished: {cur_lap_time:6.3f}s | Gain vs Lap1: {gain_vs_lap1:+6.3f}s | Delta Prev: {gain_vs_prev:+6.3f}s | Peak: {max_speed:5.2f}m/s | MinClear: {min_clear:5.3f}m")
+        core.advance_pace_trim(min_clear)
         lap_num += 1
         lap_start_time = time_elapsed
         lap_start_dist = dist
@@ -65,38 +69,67 @@ for step in range(50000): # ~500s (up to 12 laps)
         if lap_num > 10:
             break
 
-print("\n" + "="*78)
-print("  REAL-TIME LIDAR RACING CONTROLLER (VERSION 2) - 10-LAP OFFICIAL BENCHMARK")
-print("="*78)
-print(f"  +---------+--------------+-------------+--------------+------------+")
-print(f"  |  Lap #  |   Lap Time   |  Distance   |  Peak Speed  | Min Clear. |")
-print(f"  +---------+--------------+-------------+--------------+------------+")
-for l, t, d, s, c in laps:
+cum_saved = sum([max(0.0, x[6]) for x in laps])
+max_gain = max([x[6] for x in laps])
+
+print("\n" + "="*94)
+print("  REAL-TIME LIDAR RACING CONTROLLER (V2 ADAPTIVE PACE) - 10-LAP BENCHMARK & TIME-GAIN REPORT")
+print("="*94)
+print(f"  +---------+--------+--------------+---------------+--------------+--------------+------------+")
+print(f"  |  Lap #  |  Trim  |   Lap Time   | Gain vs Lap 1 |  Delta Prev  |  Peak Speed  | Min Clear. |")
+print(f"  +---------+--------+--------------+---------------+--------------+--------------+------------+")
+for l, t, d, s, c, tr, g1, gp in laps:
     star = " <-- FASTEST LAP ★" if t == min([x[1] for x in laps]) else ""
-    print(f"  |  Lap {l:2d} |    {t:6.3f} s  |   {d:6.2f} m  |   {s:5.2f} m/s  |   {c:5.3f} m  |{star}")
-print(f"  +---------+--------------+-------------+--------------+------------+")
+    print(f"  |  Lap {l:2d} |   {tr}   |    {t:6.3f} s  |    {g1:+6.3f} s   |   {gp:+6.3f} s   |   {s:5.2f} m/s  |   {c:5.3f} m  |{star}")
+print(f"  +---------+--------+--------------+---------------+--------------+--------------+------------+")
 
 flying_laps = [x[1] for x in laps[1:]]
-print(f"  ⏱️  FASTEST LAP TIME     : {min([x[1] for x in laps]):.3f} s (Lap {laps[[x[1] for x in laps].index(min([x[1] for x in laps]))][0]})")
-print(f"  📊 FLYING LAP AVERAGE   : {np.mean(flying_laps):.3f} s (±{np.std(flying_laps):.3f} s)")
-print(f"  📊 OVERALL LAP AVERAGE  : {np.mean([x[1] for x in laps]):.3f} s")
-print(f"  🏁 TOTAL RACE TIME      : {sum([x[1] for x in laps]):.3f} s")
-print(f"  🚀 PEAK SPEED ACHIEVED  : {max([x[3] for x in laps]):.2f} m/s")
-print(f"  🛡️  MIN WALL CLEARANCE   : {min([x[4] for x in laps]):.3f} m ({collisions} Collisions)")
+print(f"  ⏱️  FASTEST LAP TIME       : {min([x[1] for x in laps]):.3f} s (Lap {laps[[x[1] for x in laps].index(min([x[1] for x in laps]))][0]}, Max Gain: {max_gain:+.3f} s)")
+print(f"  ⚡ TOTAL TIME SAVED       : {cum_saved:+.3f} s gained across 10 laps vs Lap 1 reference")
+print(f"  📊 FLYING LAP AVERAGE     : {np.mean(flying_laps):.3f} s")
+print(f"  📊 OVERALL LAP AVERAGE    : {np.mean([x[1] for x in laps]):.3f} s")
+print(f"  🏁 TOTAL RACE TIME        : {sum([x[1] for x in laps]):.3f} s")
+print(f"  🚀 PEAK SPEED ACHIEVED    : {max([x[3] for x in laps]):.2f} m/s")
+print(f"  🛡️  MIN WALL CLEARANCE     : {min([x[4] for x in laps]):.3f} m ({collisions} Collisions)")
+
 csv_path = "lap_times_sakhir_v2_fast.csv"
-with open(csv_path, "w", newline="") as f:
+gains_csv_path = "lap_time_gains_sakhir.csv"
+
+with open(csv_path, "w", newline="") as f, open(gains_csv_path, "w", newline="") as fg:
     writer = csv.writer(f)
+    gwriter = csv.writer(fg)
     writer.writerow([
-        "lap_number", "lap_time_sec", "best_lap_sec", "avg_lap_sec",
-        "lap_distance_m", "max_speed_mps", "min_wall_clearance_m", "total_elapsed_sec"
+        "lap_number", "pace_trim", "lap_time_sec", "time_gained_vs_lap1_sec",
+        "delta_vs_prev_lap_sec", "cumulative_time_saved_sec", "best_lap_sec",
+        "avg_lap_sec", "lap_distance_m", "max_speed_mps",
+        "min_wall_clearance_m", "total_elapsed_sec"
+    ])
+    gwriter.writerow([
+        "lap_number", "pace_trim", "lap_time_sec", "time_gained_vs_lap1_sec",
+        "delta_vs_prev_lap_sec", "cumulative_time_saved_sec",
+        "trim_min_speed_mps", "trim_max_speed_mps", "trim_a_lat_max",
+        "min_wall_clearance_m"
     ])
     tot_time = 0.0
+    cum_s = 0.0
     best_t = float("inf")
     all_times = [x[1] for x in laps]
-    for idx, (l, t, d, s, c) in enumerate(laps, 1):
+    for idx, (l, t, d, s, c, tr, g1, gp) in enumerate(laps, 1):
         tot_time += t
+        cum_s += max(0.0, g1)
         best_t = min(best_t, t)
         avg_t = np.mean(all_times[:idx])
-        writer.writerow([l, f"{t:.3f}", f"{best_t:.3f}", f"{avg_t:.3f}", f"{d:.2f}", f"{s:.2f}", f"{c:.3f}", f"{tot_time:.3f}"])
-print(f"  📁 CSV RESULTS SAVED TO : {os.path.abspath(csv_path)}")
-print("="*78)
+        writer.writerow([
+            l, tr, f"{t:.3f}", f"{g1:+.3f}", f"{gp:+.3f}", f"{cum_s:+.3f}",
+            f"{best_t:.3f}", f"{avg_t:.3f}", f"{d:.2f}", f"{s:.2f}", f"{c:.3f}", f"{tot_time:.3f}"
+        ])
+        trim_num = int(tr.replace("T", ""))
+        tp = PACE_TRIMS[trim_num]
+        gwriter.writerow([
+            l, tr, f"{t:.3f}", f"{g1:+.3f}", f"{gp:+.3f}", f"{cum_s:+.3f}",
+            f"{tp['min_speed']:.2f}", f"{tp['max_speed']:.2f}", f"{tp['a_lat_max']:.2f}", f"{c:.3f}"
+        ])
+
+print(f"  📁 MAIN CSV SAVED TO      : {os.path.abspath(csv_path)}")
+print(f"  📁 TIME-GAINS CSV SAVED TO: {os.path.abspath(gains_csv_path)}")
+print("="*94)

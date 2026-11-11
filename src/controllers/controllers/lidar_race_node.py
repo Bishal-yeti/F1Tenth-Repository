@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-ROS 2 Node: Real-Time LiDAR Dynamic Racing Controller (Version 2: Qualifying Edition)
+ROS 2 Node: Real-Time LiDAR Dynamic Racing Controller (Version 2: Adaptive Pace & Time-Gain Edition)
 
 Course Deliverables Implemented:
 1. 10 Consecutive Laps Without Collisions (Challenge 1)
-2. Fastest Lap Time (Challenge 2)
+2. Progressive Lap-Over-Lap Pace Evolution & Time-Gain Tracking (Challenge 2)
 3. Automatic Lap Counter with Debounced Hysteresis (2 points)
 4. Lap Timer with Live Ticker & Simulation-Time Resolution (3 points)
 5. RViz2 Floating 3D HUD & ASCII Telemetry Summary for Video Evidence (2 points)
-6. Automatic Vehicle Halt & CSV Telemetry Logging after Lap 10
+6. Automatic Vehicle Halt & CSV Time-Gain Logging after Lap 10
 """
 
 import sys
@@ -24,7 +24,7 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Int32, Float32, String
 from visualization_msgs.msg import Marker, MarkerArray
 
-from controllers.lidar_race_core import RealLidarRaceCore, DEFAULTS_V2
+from controllers.lidar_race_core import RealLidarRaceCore, DEFAULTS_V2, PACE_TRIMS
 
 
 class LidarRaceNode(Node):
@@ -38,7 +38,9 @@ class LidarRaceNode(Node):
         self.declare_parameter('target_laps', 10)
         self.declare_parameter('stop_after_target_laps', True)
         self.declare_parameter('auto_reset_on_start', True)
+        self.declare_parameter('adaptive_pace', True)
         self.declare_parameter('csv_log_path', 'lap_times_sakhir_v2_fast.csv')
+        self.declare_parameter('gains_csv_path', 'lap_time_gains_sakhir.csv')
 
         core_params = {}
         for key, default_val in DEFAULTS_V2.items():
@@ -50,17 +52,19 @@ class LidarRaceNode(Node):
             else:
                 core_params[key] = str(val)
 
-        self.core = RealLidarRaceCore(**core_params)
+        adaptive_pace = bool(self.get_parameter('adaptive_pace').value)
+        self.core = RealLidarRaceCore(adaptive_pace=adaptive_pace, **core_params)
         self.target_laps = int(self.get_parameter('target_laps').value)
         self.stop_after_target_laps = bool(self.get_parameter('stop_after_target_laps').value)
         self.auto_reset_on_start = bool(self.get_parameter('auto_reset_on_start').value)
         self.csv_log_path = str(self.get_parameter('csv_log_path').value)
+        self.gains_csv_path = str(self.get_parameter('gains_csv_path').value)
 
         self.prev_steer = 0.0
         self.current_vel = 0.0
         self.current_speed_cmd = 0.0
 
-        # Lap counter & timer state
+        # Lap counter, timer & time-gain state
         self.start_pose = None
         self.current_pose = (0.0, 0.0)
         self.prev_pose = None
@@ -71,6 +75,9 @@ class LidarRaceNode(Node):
         self.lap_distances = []
         self.lap_max_speeds = []
         self.lap_min_clearances = []
+        self.lap_trims = []
+        self.lap_gains_vs_lap1 = []
+        self.lap_gains_vs_prev = []
         self.best_lap_time = float('inf')
         self.left_start_zone = False
         self.distance_traveled_this_lap = 0.0
@@ -102,15 +109,15 @@ class LidarRaceNode(Node):
         p = self.core.p
         msg = f"""
 ==============================================================================
-  REAL-TIME LIDAR DYNAMIC RACING CONTROLLER (VERSION 2: QUALIFYING EDITION)
+  REAL-TIME LIDAR DYNAMIC RACING CONTROLLER (V2: ADAPTIVE TIME-GAIN EDITION)
 ==============================================================================
   Perception Mode : Pure Real-Time LiDAR ({p['fov_angle_deg']}° FOV)
-  Max Speed Limit : {p['max_speed']:.2f} m/s ({p['max_speed']*3.6:.1f} km/h) | Corner Speed: {p['min_speed']:.2f} m/s
+  Adaptive Trims  : T0 (16.2 m/s, 4.20 m/s) -> T4 (17.1 m/s, 4.80 m/s)
   Safety Bubble   : {p['bubble_radius']:.2f} m | Symmetrical Chicane Safety Margin: {p['car_width_safety']:.2f} m
-  Apex Bias Blend : {p['use_weighted_center']:.2f} (Inside corner clipping)
   Target Laps     : {self.target_laps} consecutive collision-free laps (Auto-stop: {self.stop_after_target_laps})
-  CSV Telemetry   : {os.path.abspath(self.csv_log_path)}
-  RViz2 HUD Topic : /lap_hud_markers
+  Main CSV Log    : {os.path.abspath(self.csv_log_path)}
+  Time-Gain Log   : {os.path.abspath(self.gains_csv_path)}
+  RViz2 HUD Topic : /lap_hud_markers (10 Hz throttled)
 ==============================================================================
 """
         self.get_logger().info(msg)
@@ -152,7 +159,7 @@ class LidarRaceNode(Node):
                 self.get_logger().warn(
                     f"Simulator reset / vehicle jump detected ({step_dist:.2f}m)! Resetting lap timer."
                 )
-                self.start_pose = (x, y, 0.0)
+                self.start_pose = (x, y, yaw)
                 self.current_lap = 0
                 self.race_start_time = t_sim
                 self.lap_start_time = t_sim
@@ -191,15 +198,27 @@ class LidarRaceNode(Node):
             yaw_diff < 1.0):
             self.current_lap += 1
             lap_time = elapsed_lap
+            used_trim = self.core.trim_label
+
+            gain_vs_lap1 = (self.lap_times[0] - lap_time) if self.lap_times else 0.0
+            gain_vs_prev = (self.lap_times[-1] - lap_time) if self.lap_times else 0.0
+
             self.lap_times.append(lap_time)
             self.lap_distances.append(self.distance_traveled_this_lap)
             self.lap_max_speeds.append(self.peak_velocity_this_lap)
             self.lap_min_clearances.append(self.min_wall_clearance_this_lap)
+            self.lap_trims.append(used_trim)
+            self.lap_gains_vs_lap1.append(gain_vs_lap1)
+            self.lap_gains_vs_prev.append(gain_vs_prev)
 
             if lap_time < self.best_lap_time:
                 self.best_lap_time = lap_time
 
-            self._log_completed_lap(t_sim, lap_time)
+            # Evolve pace trim for the upcoming lap based on verified wall clearance
+            next_trim_idx = self.core.advance_pace_trim(self.min_wall_clearance_this_lap)
+            next_trim_label = f"T{next_trim_idx}"
+
+            self._log_completed_lap(t_sim, lap_time, used_trim, next_trim_label, gain_vs_lap1, gain_vs_prev)
 
             self.left_start_zone = False
             self.lap_start_time = t_sim
@@ -214,47 +233,82 @@ class LidarRaceNode(Node):
             if self.stop_after_target_laps and self.current_lap >= self.target_laps:
                 self._finish_race_and_stop()
 
-    def _log_completed_lap(self, t_sim, lap_time):
+    def _log_completed_lap(self, t_sim, lap_time, used_trim, next_trim, gain_vs_lap1, gain_vs_prev):
         avg_lap = float(np.mean(self.lap_times))
         total_time = t_sim - self.race_start_time
+        cum_saved = float(np.sum([max(0.0, g) for g in self.lap_gains_vs_lap1]))
 
         box = f"""
-╔══════════════════════════════════════════════════════════════════════════╗
-║  🏁 LAP {self.current_lap:2d} / {self.target_laps:2d} COMPLETED! (VERSION 2: LIDAR RACING)             ║
-╠══════════════════════════════════════════════════════════════════════════╣
-║  Lap Time        : {lap_time:6.2f} s   |  Best Lap Time : {self.best_lap_time:6.2f} s                ║
-║  Average Lap     : {avg_lap:6.2f} s   |  Total Elapsed : {total_time:6.2f} s                ║
-║  Lap Distance    : {self.distance_traveled_this_lap:6.1f} m   |  Peak Velocity : {self.peak_velocity_this_lap:6.2f} m/s              ║
-║  Min Wall Clear. : {self.min_wall_clearance_this_lap:6.3f} m   |  Collisions    : {self.total_collisions:<24d}║
-╠──────────────────────────────────────────────────────────────────────────╣
-║  LAP-BY-LAP TIME RECORDS:                                                ║"""
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  🏁 LAP {self.current_lap:2d} / {self.target_laps:2d} COMPLETED! [Pace Trim: {used_trim} -> Next: {next_trim}]                     ║
+╠══════════════════════════════════════════════════════════════════════════════╣
+║  Lap Time        : {lap_time:6.3f} s  |  Best Lap Time   : {self.best_lap_time:6.3f} s                  ║
+║  Time Gained/Lap1: {gain_vs_lap1:+6.3f} s  |  Delta vs Prev   : {gain_vs_prev:+6.3f} s                  ║
+║  Cumul. Saved    : {cum_saved:+6.3f} s  |  Average Lap     : {avg_lap:6.3f} s                  ║
+║  Lap Distance    : {self.distance_traveled_this_lap:6.1f} m  |  Peak Velocity   : {self.peak_velocity_this_lap:6.2f} m/s                ║
+║  Min Wall Clear. : {self.min_wall_clearance_this_lap:6.3f} m  |  Collisions      : {self.total_collisions:<26d}║
+╠──────────────────────────────────────────────────────────────────────────────╣
+║  LAP-BY-LAP TIME & GAIN RECORDS:                                             ║"""
         for i, lt in enumerate(self.lap_times, 1):
+            tr = self.lap_trims[i - 1]
+            gn = self.lap_gains_vs_lap1[i - 1]
             star = " ★ BEST" if lt == self.best_lap_time else ""
-            box += f"\n    Lap {i:2d} : {lt:6.2f} s{star}"
-        box += "\n╚══════════════════════════════════════════════════════════════════════════╝"
+            box += f"\n    Lap {i:2d} [{tr}] : {lt:6.3f} s  (Gain vs Lap 1: {gn:+6.3f} s){star}"
+        box += "\n╚══════════════════════════════════════════════════════════════════════════════╝"
         self.get_logger().info(box)
 
-        self._append_lap_to_csv(lap_time, avg_lap, total_time)
+        self._append_lap_to_csv(lap_time, used_trim, gain_vs_lap1, gain_vs_prev, cum_saved, avg_lap, total_time)
 
-    def _append_lap_to_csv(self, lap_time, avg_lap, total_time):
-        file_exists = os.path.isfile(self.csv_log_path)
+    def _append_lap_to_csv(self, lap_time, used_trim, gain_vs_lap1, gain_vs_prev, cum_saved, avg_lap, total_time):
+        mode = 'w' if self.current_lap == 1 else 'a'
         try:
-            with open(self.csv_log_path, 'a', newline='') as f:
+            with open(self.csv_log_path, mode, newline='') as f:
                 writer = csv.writer(f)
-                if not file_exists:
+                if mode == 'w':
                     writer.writerow([
-                        'lap_number', 'lap_time_sec', 'best_lap_sec', 'avg_lap_sec',
-                        'lap_distance_m', 'max_speed_mps', 'min_wall_clearance_m', 'total_elapsed_sec'
+                        'lap_number', 'pace_trim', 'lap_time_sec', 'time_gained_vs_lap1_sec',
+                        'delta_vs_prev_lap_sec', 'cumulative_time_saved_sec', 'best_lap_sec',
+                        'avg_lap_sec', 'lap_distance_m', 'max_speed_mps',
+                        'min_wall_clearance_m', 'total_elapsed_sec'
                     ])
                 writer.writerow([
                     self.current_lap,
+                    used_trim,
                     f"{lap_time:.3f}",
+                    f"{gain_vs_lap1:+.3f}",
+                    f"{gain_vs_prev:+.3f}",
+                    f"{cum_saved:+.3f}",
                     f"{self.best_lap_time:.3f}",
                     f"{avg_lap:.3f}",
                     f"{self.distance_traveled_this_lap:.2f}",
                     f"{self.peak_velocity_this_lap:.2f}",
                     f"{self.min_wall_clearance_this_lap:.3f}",
                     f"{total_time:.3f}"
+                ])
+
+            # Also write to the dedicated time-gains CSV
+            trim_num = int(used_trim.replace('T', '')) if used_trim.startswith('T') else 0
+            tp = PACE_TRIMS[min(trim_num, len(PACE_TRIMS) - 1)]
+            with open(self.gains_csv_path, mode, newline='') as fg:
+                gwriter = csv.writer(fg)
+                if mode == 'w':
+                    gwriter.writerow([
+                        'lap_number', 'pace_trim', 'lap_time_sec', 'time_gained_vs_lap1_sec',
+                        'delta_vs_prev_lap_sec', 'cumulative_time_saved_sec',
+                        'trim_min_speed_mps', 'trim_max_speed_mps', 'trim_a_lat_max',
+                        'min_wall_clearance_m'
+                    ])
+                gwriter.writerow([
+                    self.current_lap,
+                    used_trim,
+                    f"{lap_time:.3f}",
+                    f"{gain_vs_lap1:+.3f}",
+                    f"{gain_vs_prev:+.3f}",
+                    f"{cum_saved:+.3f}",
+                    f"{tp['min_speed']:.2f}",
+                    f"{tp['max_speed']:.2f}",
+                    f"{tp['a_lat_max']:.2f}",
+                    f"{self.min_wall_clearance_this_lap:.3f}"
                 ])
         except Exception as e:
             self.get_logger().error(f"Failed to write CSV log: {e}")
@@ -266,17 +320,18 @@ class LidarRaceNode(Node):
         elapsed = t_sim - (self.lap_start_time or t_sim)
         last_lap_str = f"{self.lap_times[-1]:.2f}s" if self.lap_times else "--.--s"
         best_lap_str = f"{self.best_lap_time:.2f}s" if self.lap_times else "--.--s"
+        last_gain_str = f"{self.lap_gains_vs_lap1[-1]:+.2f}s" if self.lap_gains_vs_lap1 else "+0.00s"
 
         ticker = (
-            f"[LIVE TIMER v2] Lap: {self.current_lap}/{self.target_laps} | "
-            f"Current Lap Time: {elapsed:6.2f}s | Last Lap: {last_lap_str} | "
-            f"Best Lap: {best_lap_str} | Speed: {self.current_vel:5.2f} m/s"
+            f"[LIVE TIMER v2 | {self.core.trim_label}] Lap: {self.current_lap}/{self.target_laps} | "
+            f"Current: {elapsed:6.2f}s | Last: {last_lap_str} (Gain: {last_gain_str}) | "
+            f"Best: {best_lap_str} | Speed: {self.current_vel:5.2f} m/s"
         )
         self.get_logger().info(ticker)
 
         stat_msg = (
-            f"LAP={self.current_lap}/{self.target_laps};TIME={elapsed:.2f};"
-            f"BEST={best_lap_str};LAST={last_lap_str};SPD={self.current_vel:.2f}"
+            f"LAP={self.current_lap}/{self.target_laps};TRIM={self.core.trim_label};"
+            f"TIME={elapsed:.2f};BEST={best_lap_str};LAST={last_lap_str};GAIN={last_gain_str};SPD={self.current_vel:.2f}"
         )
         self.telemetry_pub.publish(String(data=stat_msg))
 
@@ -292,32 +347,38 @@ class LidarRaceNode(Node):
         avg_lap = float(np.mean(self.lap_times)) if self.lap_times else 0.0
         total_time = float(np.sum(self.lap_times)) if self.lap_times else 0.0
         best_lap_str = f"{self.best_lap_time:.3f} s" if self.lap_times else "N/A"
+        cum_saved = float(np.sum([max(0.0, g) for g in self.lap_gains_vs_lap1])) if self.lap_gains_vs_lap1 else 0.0
+        max_gain = float(np.max(self.lap_gains_vs_lap1)) if self.lap_gains_vs_lap1 else 0.0
 
         summary = f"""
 
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   {header_title}
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  +---------+--------------+-------------+--------------+------------+
-  |  Lap #  |   Lap Time   |  Distance   |  Peak Speed  | Min Clear. |
-  +---------+--------------+-------------+--------------+------------+"""
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  +---------+--------+--------------+---------------+--------------+--------------+------------+
+  |  Lap #  |  Trim  |   Lap Time   | Gain vs Lap 1 |  Delta Prev  |  Peak Speed  | Min Clear. |
+  +---------+--------+--------------+---------------+--------------+--------------+------------+"""
         if self.lap_times:
             for i, lt in enumerate(self.lap_times, 0):
                 fastest_flag = " <-- FASTEST LAP ★" if lt == self.best_lap_time else ""
-                dist = self.lap_distances[i] if i < len(self.lap_distances) else self.total_distance / max(1, len(self.lap_times))
+                tr = self.lap_trims[i] if i < len(self.lap_trims) else "T0"
+                g1 = self.lap_gains_vs_lap1[i] if i < len(self.lap_gains_vs_lap1) else 0.0
+                gp = self.lap_gains_vs_prev[i] if i < len(self.lap_gains_vs_prev) else 0.0
                 spd = self.lap_max_speeds[i] if i < len(self.lap_max_speeds) else self.current_vel
-                clr = self.lap_min_clearances[i] if i < len(self.lap_min_clearances) else 0.48
-                summary += f"\n  |  Lap {i+1:2d}  |    {lt:6.3f} s  |   {dist:5.1f} m   |   {spd:5.2f} m/s  |   {clr:5.3f} m  |{fastest_flag}"
+                clr = self.lap_min_clearances[i] if i < len(self.lap_min_clearances) else 0.62
+                summary += f"\n  |  Lap {i+1:2d}  |   {tr}   |    {lt:6.3f} s  |    {g1:+6.3f} s   |   {gp:+6.3f} s   |   {spd:5.2f} m/s  |   {clr:5.3f} m  |{fastest_flag}"
         else:
-            summary += "\n  |  No full laps completed before session halt.                                  |"
+            summary += "\n  |  No full laps completed before session halt.                                                |"
         summary += f"""
-  +---------+--------------+-------------+--------------+------------+
-  ⏱️  FASTEST LAP TIME     : {best_lap_str}
-  📊 AVERAGE LAP TIME     : {avg_lap:.3f} s
-  🏁 TOTAL RACE TIME      : {total_time:.3f} s
-  🛡️  TOTAL COLLISIONS     : {self.total_collisions}
-  📁 CSV RESULTS SAVED TO : {os.path.abspath(self.csv_log_path)}
-★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+  +---------+--------+--------------+---------------+--------------+--------------+------------+
+  ⏱️  FASTEST LAP TIME       : {best_lap_str} (Max Single-Lap Gain: {max_gain:+.3f} s vs Lap 1)
+  ⚡ TOTAL TIME SAVED       : {cum_saved:+.3f} s gained across session vs Lap 1 baseline
+  📊 AVERAGE LAP TIME       : {avg_lap:.3f} s
+  🏁 TOTAL RACE TIME        : {total_time:.3f} s
+  🛡️  TOTAL COLLISIONS       : {self.total_collisions}
+  📁 MAIN CSV SAVED TO      : {os.path.abspath(self.csv_log_path)}
+  📁 TIME-GAINS CSV SAVED TO: {os.path.abspath(self.gains_csv_path)}
+★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
   Vehicle stopped safely. Exiting controller node.
 """
         self.get_logger().info(summary)
@@ -339,6 +400,12 @@ class LidarRaceNode(Node):
 
         min_range = float(np.min(np.nan_to_num(scan_msg.ranges, nan=30.0, posinf=30.0)))
         self.min_wall_clearance_this_lap = min(self.min_wall_clearance_this_lap, min_range)
+
+        # Instant mid-lap safety downshift if clearance ever drops below 0.48m
+        if self.core.check_mid_lap_safety(min_range):
+            self.get_logger().info(
+                f"[SAFETY DOWNSHIFT] Clearance={min_range:.3f}m < 0.48m; reverted to Reference Trim T0."
+            )
 
         # Infallible Fault & Track Departure Handlers
         t_sim = self._sim_time(scan_msg.header.stamp)
@@ -390,8 +457,8 @@ class LidarRaceNode(Node):
         self.last_hud_pub_sim_time = t_sim
         marker_array = MarkerArray()
         elapsed = t_sim - (self.lap_start_time or t_sim)
-        last_lap_str = f"{self.lap_times[-1]:.2f}s" if self.lap_times else "--.--s"
         best_lap_str = f"{self.best_lap_time:.2f}s" if self.lap_times else "--.--s"
+        last_gain_str = f"{self.lap_gains_vs_lap1[-1]:+.2f}s" if self.lap_gains_vs_lap1 else "+0.00s"
 
         text_marker = Marker()
         text_marker.header.frame_id = 'base_link'
@@ -409,10 +476,10 @@ class LidarRaceNode(Node):
         text_marker.color.b = 1.0
         text_marker.color.a = 0.95
         text_marker.text = (
-            f"[LIDAR RACING v2]\n"
-            f"LAP: {self.current_lap}/{self.target_laps}\n"
+            f"[LIDAR v2 | {self.core.trim_label}]\n"
+            f"LAP:  {self.current_lap}/{self.target_laps}\n"
             f"TIME: {elapsed:5.2f}s\n"
-            f"BEST: {best_lap_str}\n"
+            f"BEST: {best_lap_str} ({last_gain_str})\n"
             f"SPD:  {self.current_vel:4.1f} m/s"
         )
         marker_array.markers.append(text_marker)
