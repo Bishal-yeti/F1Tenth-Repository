@@ -306,11 +306,9 @@ class LidarRaceNode(Node):
                 dist = self.lap_distances[i] if i < len(self.lap_distances) else self.total_distance / max(1, len(self.lap_times))
                 spd = self.lap_max_speeds[i] if i < len(self.lap_max_speeds) else self.current_vel
                 clr = self.lap_min_clearances[i] if i < len(self.lap_min_clearances) else 0.48
-                summary += f"
-  |  Lap {i+1:2d}  |    {lt:6.3f} s  |   {dist:5.1f} m   |   {spd:5.2f} m/s  |   {clr:5.3f} m  |{fastest_flag}"
+                summary += f"\n  |  Lap {i+1:2d}  |    {lt:6.3f} s  |   {dist:5.1f} m   |   {spd:5.2f} m/s  |   {clr:5.3f} m  |{fastest_flag}"
         else:
-            summary += "
-  |  No full laps completed before session halt.                                  |"
+            summary += "\n  |  No full laps completed before session halt.                                  |"
         summary += f"""
   +---------+--------------+-------------+--------------+------------+
   ⏱️  FASTEST LAP TIME     : {best_lap_str}
