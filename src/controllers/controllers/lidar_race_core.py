@@ -28,11 +28,11 @@ DEFAULTS_V2.update(
     steer_gain=0.76,                # Stable proportional steering without overshoot
     steer_deriv_gain=0.15,          # Damped derivative term
     steer_smoothing=0.10,           # Low-pass filter on steering commands
-    max_speed=17.5,                 # Fast straightaway velocity (~63 km/h)
-    min_speed=6.20,                 # Physically stable corner rotation velocity
-    a_brake=8.10,                   # Responsive kinematic trail-braking
-    a_lat_max=12.8,                 # Tire friction limit
-    safety_margin=1.15,             # Reliable forward obstacle runway margin
+    max_speed=16.2,                 # High-speed straightaway velocity (~58.3 km/h)
+    min_speed=4.20,                 # Hairpin apex velocity within tire grip circle
+    a_brake=7.20,                   # Early kinematic trail-braking for ROS delay immunity
+    a_lat_max=9.00,                 # Strictly inside physical tire grip limit (mu*g = 10.29 m/s^2)
+    safety_margin=1.50,             # Generous forward obstacle runway margin (survives 0-30ms latency)
     front_cone_half=17,
     exit_lookahead_blend=0.04,      # Controlled straightaway exit acceleration
     brake_entry_gain=0.13,          # Dynamic trail-braking closing-rate gain

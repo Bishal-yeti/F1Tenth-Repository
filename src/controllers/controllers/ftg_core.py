@@ -206,8 +206,10 @@ class FollowGapCore:
             best = self.find_best_point(s, e, fov)
 
         alpha = float(self.angles[best])
-        # Prevent discontinuous gap jumps across sides when heavily cornering
-        if abs(alpha - self.prev_target_angle) > 1.30 and abs(self.prev_steer) > 0.15:
+        # Hold turn direction if safety bubble momentarily clips FOV edge in tight hairpin
+        if abs(alpha - self.prev_target_angle) > 1.35 and abs(self.prev_steer) > 0.20 and closest < 1.15:
+            alpha = self.prev_target_angle
+        elif abs(alpha - self.prev_target_angle) > 1.30 and abs(self.prev_steer) > 0.15:
             alpha = float(np.clip(alpha, self.prev_target_angle - 0.40, self.prev_target_angle + 0.40))
 
         # ----- steering law
@@ -268,9 +270,9 @@ class FollowGapCore:
 
         # Infallible active wall proximity safety dampener (allows smooth rotation if tight to wall)
         closest_all = max(np.min(raw[self.min_idx:self.max_idx]), 0.1)
-        if closest_all < 0.48:
-            wall_factor = float(np.clip((closest_all - 0.20) / 0.28, 0.65, 1.0))
-            speed = float(max(4.2, base_speed * wall_factor))
+        if closest_all < 0.55:
+            wall_factor = float(np.clip((closest_all - 0.20) / 0.35, 0.55, 1.0))
+            speed = float(max(3.2, base_speed * wall_factor))
         else:
             speed = float(base_speed)
 

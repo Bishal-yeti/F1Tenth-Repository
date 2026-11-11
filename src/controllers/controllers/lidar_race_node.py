@@ -82,6 +82,7 @@ class LidarRaceNode(Node):
         self.peak_velocity_this_lap = 0.0
         self.total_collisions = 0
         self.last_timer_print_sim_time = 0.0
+        self.last_hud_pub_sim_time = 0.0
 
         # ROS 2 Publishers
         self.drive_pub = self.create_publisher(AckermannDriveStamped, '/drive', 10)
@@ -356,9 +357,9 @@ class LidarRaceNode(Node):
             self._finish_race_and_stop(reason="TRACK_DEPARTURE_VOID")
             return
 
-        # Case 3: Lap duration timeout (normal lap is ~38s; >55s indicates vehicle is lost or stuck)
-        if self.left_start_zone and elapsed_lap > 55.0:
-            self.get_logger().error(f"EMERGENCY HALT: Lap time exceeded 55.0s safety timeout (current={elapsed_lap:.1f}s)! Halting vehicle and saving race results.")
+        # Case 3: Lap duration timeout (normal lap is ~42s; >65s indicates vehicle is lost or stuck)
+        if self.left_start_zone and elapsed_lap > 65.0:
+            self.get_logger().error(f"EMERGENCY HALT: Lap time exceeded 65.0s safety timeout (current={elapsed_lap:.1f}s)! Halting vehicle and saving race results.")
             self._finish_race_and_stop(reason="LAP_TIMEOUT_LOST_OR_STUCK")
             return
 
@@ -383,8 +384,11 @@ class LidarRaceNode(Node):
         self.drive_pub.publish(drive_msg)
 
     def _publish_hud_markers(self, stamp):
-        marker_array = MarkerArray()
         t_sim = self._sim_time(stamp)
+        if self.race_finished or (t_sim - self.last_hud_pub_sim_time) < 0.10:
+            return
+        self.last_hud_pub_sim_time = t_sim
+        marker_array = MarkerArray()
         elapsed = t_sim - (self.lap_start_time or t_sim)
         last_lap_str = f"{self.lap_times[-1]:.2f}s" if self.lap_times else "--.--s"
         best_lap_str = f"{self.best_lap_time:.2f}s" if self.lap_times else "--.--s"
