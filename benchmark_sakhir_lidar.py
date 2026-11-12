@@ -67,6 +67,23 @@ for step in range(50000): # ~500s (up to 12 laps)
         min_clear = 999.0
         max_speed = 0.0
         if lap_num > 10:
+            # Verify Active Steered Cooldown Braking after Lap 10 completion
+            cooldown_min_clear = 999.0
+            cooldown_steps = 0
+            for c_step in range(350):
+                scans = obs["scans"][0]
+                vx = obs["linear_vels_x"][0]
+                cooldown_min_clear = min(cooldown_min_clear, float(np.min(scans)))
+                if vx <= 0.05:
+                    break
+                steer, _ = core.step(scans, -2.35, 4.7/1080.0, vx)
+                obs, _, _, _ = env.step(np.array([[steer, 0.0]]))
+                cooldown_steps += 1
+                if env.collisions[0] == 1.0:
+                    collisions += 1
+                    print(f"COLLISION during post-Lap-10 cooldown at step {c_step}!")
+                    break
+            print(f"Post-Lap-10 Active Steered Cooldown: halted at {obs['linear_vels_x'][0]:.2f} m/s in {cooldown_steps*0.01:.2f}s (MinClear={cooldown_min_clear:.3f}m, Collisions={collisions})")
             break
 
 cum_saved = sum([max(0.0, x[6]) for x in laps])

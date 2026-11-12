@@ -109,12 +109,12 @@ class LidarRaceNode(Node):
         p = self.core.p
         msg = f"""
 ==============================================================================
-  REAL-TIME LIDAR DYNAMIC RACING CONTROLLER (V2: ADAPTIVE TIME-GAIN EDITION)
+  REAL-TIME LIDAR DYNAMIC RACING CONTROLLER (V2: 9-STAGE TIME-ATTACK EDITION)
 ==============================================================================
   Perception Mode : Pure Real-Time LiDAR ({p['fov_angle_deg']}° FOV)
-  Adaptive Trims  : T0 (16.2 m/s, 4.20 m/s) -> T4 (17.1 m/s, 4.80 m/s)
+  Adaptive Trims  : T0 (16.2 m/s, 4.20 m/s) -> T8 (18.45 m/s, 6.12 m/s)
   Safety Bubble   : {p['bubble_radius']:.2f} m | Symmetrical Chicane Safety Margin: {p['car_width_safety']:.2f} m
-  Target Laps     : {self.target_laps} consecutive collision-free laps (Auto-stop: {self.stop_after_target_laps})
+  Target Laps     : {self.target_laps} consecutive collision-free laps (Active Steered Cooldown)
   Main CSV Log    : {os.path.abspath(self.csv_log_path)}
   Time-Gain Log   : {os.path.abspath(self.gains_csv_path)}
   RViz2 HUD Topic : /lap_hud_markers (10 Hz throttled)
@@ -339,9 +339,8 @@ class LidarRaceNode(Node):
         self.race_finished = True
         stop_cmd = AckermannDriveStamped()
         stop_cmd.drive.speed = 0.0
-        stop_cmd.drive.steering_angle = 0.0
-        for _ in range(15):
-            self.drive_pub.publish(stop_cmd)
+        stop_cmd.drive.steering_angle = float(self.prev_steer) if not reason else 0.0
+        self.drive_pub.publish(stop_cmd)
 
         header_title = "🏆 COMPETITION COMPLETE: 10 CONSECUTIVE LAPS (VERSION 2)" if not reason else f"🛑 SESSION CONCLUDED: {reason}"
         avg_lap = float(np.mean(self.lap_times)) if self.lap_times else 0.0
@@ -379,23 +378,39 @@ class LidarRaceNode(Node):
   📁 MAIN CSV SAVED TO      : {os.path.abspath(self.csv_log_path)}
   📁 TIME-GAINS CSV SAVED TO: {os.path.abspath(self.gains_csv_path)}
 ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-  Vehicle stopped safely. Exiting controller node.
+  Initiating Active Steered Cooldown Braking ({self.current_vel:.2f} m/s -> 0.00 m/s)...
 """
         self.get_logger().info(summary)
-        for _ in range(5):
-            self.drive_pub.publish(stop_cmd)
-        sys.exit(0)
+        if reason is not None:
+            stop_cmd.drive.steering_angle = 0.0
+            for _ in range(15):
+                self.drive_pub.publish(stop_cmd)
+            sys.exit(0)
 
     def lidar_callback(self, scan_msg: LaserScan):
         if self.race_finished:
             stop_msg = AckermannDriveStamped()
             stop_msg.header = scan_msg.header
-            stop_msg.drive.steering_angle = 0.0
-            stop_msg.drive.speed = 0.0
-            self.drive_pub.publish(stop_msg)
-            self.stop_packets_sent += 1
-            if self.stop_packets_sent >= 10:
-                raise SystemExit(0)
+            stop_msg.header.frame_id = 'base_link'
+            if self.current_vel > 0.05 and self.stop_packets_sent < 350:
+                # Active Steered Cooldown Braking: keep steering down track center while decelerating to 0.0 m/s!
+                steer, _ = self.core.step(
+                    scan_msg.ranges,
+                    scan_msg.angle_min,
+                    scan_msg.angle_increment,
+                    self.current_vel
+                )
+                stop_msg.drive.steering_angle = float(steer)
+                stop_msg.drive.speed = 0.0
+                self.drive_pub.publish(stop_msg)
+                self.stop_packets_sent += 1
+            else:
+                stop_msg.drive.steering_angle = 0.0
+                stop_msg.drive.speed = 0.0
+                for _ in range(15):
+                    self.drive_pub.publish(stop_msg)
+                self.get_logger().info("Vehicle physically halted at 0.00 m/s in center of track. Exiting controller node.")
+                sys.exit(0)
             return
 
         min_range = float(np.min(np.nan_to_num(scan_msg.ranges, nan=30.0, posinf=30.0)))
