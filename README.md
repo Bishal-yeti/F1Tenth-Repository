@@ -44,7 +44,7 @@ The F1TENTH simulator for ROS 2 is a simulation environment designed to test con
 Install the simulator:
 ```bash
 cd $HOME
-git clone https://github.com/widegonz/F1Tenth-Repository.git
+git clone https://github.com/Bishal-yeti/F1Tenth-Repository.git
 ```
 
 https://github.com/user-attachments/assets/984a755c-6259-4271-9f88-51f68e425af5
