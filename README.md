@@ -30,92 +30,218 @@ The F1TENTH simulator for ROS 2 is a simulation environment designed to test con
 - Supports 1 or 2 vehicles simultaneously.
 - For a Spanish version of this file, click [here](README_es.md).
 
-## 1. Simulator Installation
+## 1. Complete Step-by-Step Installation & Setup Guide (From Zero to Running)
 
-### 1.1 Install Dependencies and Simulator
-- **ROS 2 Humble**: Follow the instructions [here](https://docs.ros.org/en/humble/Installation/Ubuntu-Install-Debs.html)
-- **F1TENTH Gym**
+### 1.0 Supported Operating Systems & Software Versions Matrix
+
+| Component | Recommended / Tested Version | Alternative Supported Versions | Notes |
+| :--- | :--- | :--- | :--- |
+| **Operating System** | **Ubuntu 22.04 LTS (Jammy Jellyfish)** (Native Linux or Windows 10/11 WSL2) | Ubuntu 20.04 LTS (Focal) / Ubuntu 24.04 LTS (Noble) | WSL2 on Windows 11 includes native WSLg GUI support for RViz2 |
+| **ROS 2 Distribution** | **ROS 2 Humble Hawksbill** (LTS) | ROS 2 Foxy (Ubuntu 20.04) / ROS 2 Jazzy (Ubuntu 24.04) | Set `ROS_DISTRO=humble` (or `foxy` / `jazzy`) |
+| **Python Version** | **Python 3.10.x** (`3.10.12` on Ubuntu 22.04) | Python 3.8 (Ubuntu 20.04) / Python 3.12 (Ubuntu 24.04) | Installed via `python3` & `python3-pip` |
+| **Build System** | **`colcon`** (`python3-colcon-common-extensions`) + **`rosdep2`** | `ament_cmake` / `ament_python` | Builds ROS 2 packages in `src/` |
+| **F1Tenth Physics Engine** | **`f1tenth_gym`** (`0.2.1` editable install) | — | RK4 integration + Pacejka tire model |
+| **Core Python Libraries** | `gym==0.19.0`, `numpy==1.23.5` (or `<1.25`), `scipy>=1.7.0`, `numba>=0.55.0`, `Pillow>=9.0.0`, `pyyaml>=6.0`, `transforms3d>=0.3.1`, `shapely>=1.8.0` | `setuptools==58.2.0`, `pip<24.1` (required for `gym==0.19.0`) | Exact versions prevent `gym` build errors |
+
+---
+
+### 1.1 Step-by-Step ROS 2 Humble Installation on Ubuntu 22.04 (From Scratch)
+
+If ROS 2 is not yet installed on your Ubuntu machine or WSL2 instance, run the following commands in order:
+
+#### A. Configure UTF-8 System Locale
 ```bash
-  git clone https://github.com/f1tenth/f1tenth_gym
-  sudo apt install python3-pip
-  cd f1tenth_gym && pip3 install -e .
+sudo apt update && sudo apt install -y locales
+sudo locale-gen en_US en_US.UTF-8
+sudo update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8
+export LANG=en_US.UTF-8
 ```
 
-Install the simulator:
+#### B. Enable the Ubuntu Universe Repository & Add Official ROS 2 GPG Key
+```bash
+sudo apt install -y software-properties-common curl gnupg lsb-release build-essential git
+sudo add-apt-repository universe -y
+sudo apt update
+
+sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(. /etc/os-release && echo $UBUNTU_CODENAME) main" | sudo tee /etc/apt/sources.list.d/ros2.list > /dev/null
+```
+
+#### C. Install ROS 2 Desktop, Colcon Build Tools, and Required Simulation Packages
+> **Note for Ubuntu 20.04 / 24.04**: Replace `humble` below with `foxy` (Ubuntu 20.04) or `jazzy` (Ubuntu 24.04).
+```bash
+sudo apt update && sudo apt upgrade -y
+
+sudo apt install -y \
+  ros-humble-desktop \
+  ros-humble-ackermann-msgs \
+  ros-humble-nav2-map-server \
+  ros-humble-nav2-lifecycle-manager \
+  ros-humble-xacro \
+  ros-humble-robot-state-publisher \
+  ros-humble-joint-state-publisher-gui \
+  ros-humble-teleop-twist-keyboard \
+  ros-humble-tf-transformations \
+  python3-colcon-common-extensions \
+  python3-rosdep \
+  python3-pip \
+  python3-vcstool
+```
+
+#### D. Initialize `rosdep`
+```bash
+sudo rosdep init || true
+rosdep update
+```
+
+#### E. Add ROS 2 Environment to `~/.bashrc`
+```bash
+echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
+source ~/.bashrc
+```
+
+---
+
+### 1.2 Install the `f1tenth_gym` Physics Simulator & Python Dependencies
+
+The official `f1tenth_gym` requires `gym==0.19.0`, which relies on `setuptools<60` during installation. Run these exact commands so it installs cleanly without version conflicts:
+
+```bash
+# 1. Install compatible build tools and exact Python scientific packages
+python3 -m pip install --upgrade "pip<24.1" "setuptools==58.2.0" "wheel<0.40.0"
+python3 -m pip install \
+  "gym==0.19.0" \
+  "numpy==1.23.5" \
+  "scipy>=1.8.0" \
+  "numba>=0.56.0" \
+  "Pillow>=9.0.0" \
+  "PyYAML>=6.0" \
+  "transforms3d>=0.4.1" \
+  "shapely>=1.8.5" \
+  "matplotlib>=3.5.0"
+
+# 2. Clone and install f1tenth_gym in editable mode
+cd $HOME
+git clone https://github.com/f1tenth/f1tenth_gym.git
+cd ~/f1tenth_gym
+python3 -m pip install -e . --no-build-isolation
+```
+*(Note: If you are on **Ubuntu 24.04 (Python 3.12)**, append `--break-system-packages` to the `pip install` commands above).*
+
+---
+
+### 1.3 Clone `F1Tenth-Repository` & Install ROS Package Dependencies
+
 ```bash
 cd $HOME
 git clone https://github.com/Bishal-yeti/F1Tenth-Repository.git
+cd ~/F1Tenth-Repository
+
+# Install any remaining ROS 2 package dependencies declared in package.xml
+source /opt/ros/humble/setup.bash
+rosdep install -i --from-path src --rosdistro humble -y
+
+# Remove python3-coverage if installed (prevents colcon/ament_python conflicts)
+python3 -m pip uninstall -y coverage || true
+sudo apt purge -y python3-coverage || true
 ```
 
 https://github.com/user-attachments/assets/984a755c-6259-4271-9f88-51f68e425af5
 
-#### 1.2. Installation of simulator dependencies
-Dependencies are installed using rosdep:
-
-```bash
-cd
-sudo apt install python3-rosdep2
-rosdep update
-source /opt/ros/humble/setup.bash
-cd ~/F1Tenth-Repository
-rosdep install -i --from-path src --rosdistro humble -y
-```
-
 https://github.com/user-attachments/assets/4c3ea5fb-4486-459f-beb7-bb7e8efa2a34
 
-#### 1.3. Update Map Path in sim.yaml
+---
 
-To ensure that the simulator can locate the maps correctly, we need to modify the default path in the `sim.yaml` file, which is as follows:
+### 1.4 Configure the Map Path in `sim.yaml`
 
-`/home/your_user/F1Tenth-Repository/src/f1tenth_gym_ros/maps/levine`
+The simulator loads the track specified by `map_path` inside [`src/f1tenth_gym_ros/config/sim.yaml`](src/f1tenth_gym_ros/config/sim.yaml).
 
-In this case, the part that says `your_user` will be replaced with the username that has been set on your computer. Here’s how to do it:
+#### Automatic One-Line Configuration (Sets your current Linux username & Sakhir GP map):
+```bash
+sed -i "s|map_path:.*|map_path: '$HOME/F1Tenth-Repository/src/f1tenth_gym_ros/maps/Sakhir_map'|g" ~/F1Tenth-Repository/src/f1tenth_gym_ros/config/sim.yaml
+```
+
+#### Manual Configuration Details (`src/f1tenth_gym_ros/config/sim.yaml`):
+- **For Sakhir GP (`Sakhir_map` — Default Competition Track)**:
+  ```yaml
+  map_path: '/home/your_user/F1Tenth-Repository/src/f1tenth_gym_ros/maps/Sakhir_map'
+  map_img_ext: '.png'
+  sx: 30.78
+  sy: -22.72
+  stheta: -2.635
+  ```
+- **For Spielberg (`Spielberg_map`) or Levine (`levine` / `levineB`)**:
+  Replace `Sakhir_map` at the end of `map_path` with `Spielberg_map`, `levine`, or `levineB` and set `sx: 0.0, sy: 0.0, stheta: 0.0`.
 
 https://github.com/user-attachments/assets/f66baff8-8d29-4306-a2e5-d5a50eb888f3
 
-With the path modified, all we have to do is navigate to the main folder and compile our workspace.
+---
+
+### 1.5 Build the ROS 2 Workspace (`colcon build`)
+
+Whenever you clone the project or change `sim.yaml` / controller files, compile the workspace from the repository root:
 
 ```bash
 cd ~/F1Tenth-Repository
-colcon build
-```
-
-#### 1.4. Start the simulation
-
-To start the simulation, make sure you have run `source` in your workspace
-```bash
-cd ~/F1Tenth-Repository
-source install/setup.bash
-```
-
-Then we use the following command to load the simulator:
-
-```bash
-ros2 launch f1tenth_gym_ros gym_bridge_launch.py
-```
-
-The first time you run the command, the simulator will take a little while to load the robot model; subsequent times, it will start up more quickly.
-
-https://github.com/user-attachments/assets/1791be99-73b6-4a22-acc2-6efa6fd40e5f
-
-#### 1.4 Execution Issues
-If you encounter an error when running the simulator's `.launch` file, you can use the following command to remove a library that causes errors on certain computers:
-```bash
-python3 -m pip uninstall -y coverage
-sudo apt purge -y python3-coverage
-```
-
-Once the library has been removed, we recompile the repository:
-```bash
-cd ~/F1Tenth-Repository
+source /opt/ros/humble/setup.bash
 rm -rf build/ install/ log/
 colcon build --symlink-install
 source install/setup.bash
 ```
 
-And the simulator is restarted:
+---
+
+### 1.6 Step-by-Step Execution Guide (Running the Simulator & Controllers)
+
+You will use **two Ubuntu terminals** side-by-side: **Terminal 1** runs the physics bridge + RViz2 visualization, and **Terminal 2** runs the autonomous controller node.
+
+#### Step 1 — Terminal 1: Launch the F1Tenth Simulator & RViz2
 ```bash
+cd ~/F1Tenth-Repository
+source /opt/ros/humble/setup.bash
+source install/setup.bash
 ros2 launch f1tenth_gym_ros gym_bridge_launch.py
+```
+*Wait ~3–5 seconds for the RViz2 window to open and display the Sakhir GP circuit and the blue/black F1Tenth ego racecar at the starting line.*
+
+https://github.com/user-attachments/assets/1791be99-73b6-4a22-acc2-6efa6fd40e5f
+
+#### Step 2 — Terminal 2 (Option A): Run Version 2 — Pure Real-Time LiDAR 9-Stage Adaptive Racing Controller (Recommended)
+```bash
+cd ~/F1Tenth-Repository
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 run controllers lidar_race_node
+```
+- **What happens during execution**:
+  - Drives **100% from live `/scan` LiDAR data** (zero pre-mapped waypoints).
+  - Starts Lap 1 on the ultra-safe reference trim **`T0`** (`~43.9s`) and automatically promotes through **`T1 -> T8`** as verified LiDAR wall clearance stays clean, dropping lap times down to **`38.89s`** (`+5.06s` faster per lap, **`+37.60s` total time saved** across 10 laps).
+  - Displays a live 3D floating HUD above the car in RViz2 (`/lap_hud_markers`), prints a live console ticker every 2 seconds, and outputs a full Unicode lap summary table at the end of each lap.
+  - After completing **Lap 10**, automatically enters **Active Steered Cooldown Braking** (`speed = 0.0` while continuing to steer down the center of the straightaway until `velocity <= 0.05 m/s`), saves all telemetry to [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv) and [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv), and exits cleanly.
+
+#### Step 2 — Terminal 2 (Option B): Run Version 1 — Endurance Fast-Centerline Controller
+```bash
+cd ~/F1Tenth-Repository
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 run controllers gap_node
+```
+- Runs the constant-trim endurance Follow-the-Gap controller (`38.88s` best lap, `0.534m` min clearance) and logs results to [`lap_times_sakhir.csv`](lap_times_sakhir.csv).
+
+#### Step 2 — Terminal 2 (Option C): Run Headless 10-Lap Physics Benchmark (Without RViz2)
+To verify 10 consecutive laps + post-Lap-10 cooldown braking directly against `f1tenth_gym` in ~15 seconds:
+```bash
+cd ~/F1Tenth-Repository
+python3 benchmark_sakhir_lidar.py
+```
+
+#### Optional — Terminal 3: Monitor Live ROS 2 Lap Counter & Timer Topics
+```bash
+source /opt/ros/humble/setup.bash
+ros2 topic echo /lap_count          # Current completed lap number (Int32)
+ros2 topic echo /lap_time           # Last completed lap time in seconds (Float32)
+ros2 topic echo /best_lap_time      # Fastest lap time so far in seconds (Float32)
+ros2 topic echo /race_telemetry     # JSON telemetry packet per lap (String)
 ```
 
 ## 2. Repository Structure
