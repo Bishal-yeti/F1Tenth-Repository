@@ -4,7 +4,7 @@ Complete documentation, algorithmic breakdown, code structure, execution guide, 
 
 > **Dual-Architecture Implementation:**
 > - **Version 1 (`gap_node.py`)**: *The Endurance Champion* — Guaranteed 10 consecutive collision-free laps (verified: **38.88 s** fastest lap, **39.08 s** average, 0 collisions, 0.534m min clearance, tagged in Git as `v1.0-stable`).
-> - **Version 2 (`lidar_race_node.py`)**: *The Real-Time LiDAR Dynamic Racing Edition* — Pure perception-driven racing controller with inside apex-clipping, kinematic trail braking, and unthrottled straightaways (**37.78 s** fastest lap, **38.20 s** average, 0 collisions, 0.445m min clearance, **8.82 s total lead** over 10 laps).
+> - **Version 2 (`lidar_race_node.py` + `lidar_race_core.py`)**: *9-Stage Adaptive Time-Attack Edition* — Pure real-time LiDAR perception controller with 9 progressive pace trims (`T0` $\rightarrow$ `T8`), hairpin direction-hold lock, instant mid-lap safety downshift, and active steered cooldown braking (**38.891 s** fastest live ROS 2 lap, **+5.061 s** single-lap gain vs Lap 1, **+37.603 s** cumulative time saved over 10 laps, 0 collisions, **0.537 m** min clearance).
 
 ---
 
@@ -170,7 +170,9 @@ F1Tenth-Repository/
 ├── CONTROLLER_TUTORIAL.md                   # Complete technical documentation & Oral Defense guide
 ├── README.md                                # Repository overview & quick-start guide
 ├── lap_times_sakhir.csv                     # Version 1 verified 10-lap telemetry log
-├── lap_times_sakhir_v2_fast.csv             # Version 2 verified 10-lap telemetry log
+├── lap_times_sakhir_v2_fast.csv             # Version 2 verified 10-lap live ROS 2 telemetry log
+├── lap_time_gains_sakhir.csv                # Version 2 lap-by-lap time gained & pace-trim evolution log
+├── benchmark_sakhir_lidar.py                # Standalone 10-lap + cooldown verification benchmark script
 └── src/
     ├── controllers/
     │   ├── package.xml                      # ROS 2 dependencies (rclpy, sensor_msgs, nav_msgs, visualization_msgs)
@@ -271,23 +273,23 @@ Both controllers were thoroughly benchmarked across full 10-lap consecutive test
   ⏱️ FASTEST LAP TIME : 38.880 s | 📊 AVERAGE LAP TIME: 39.081 s | 🛡️ COLLISIONS: 0
 ```
 
-#### Version 2 Telemetry (`lidar_race_node.py`):
+#### Version 2 Live ROS 2 Telemetry (`lidar_race_node.py` — 9-Stage Adaptive Time-Attack):
 ```
-+---------+--------------+-------------+--------------+------------+
-|  Lap #  |   Lap Time   |  Distance   |  Peak Speed  | Min Clear. |
-+---------+--------------+-------------+--------------+------------+
-|  Lap  1 |     38.820 s |     439.1 m |    15.79 m/s |    0.451 m |
-|  Lap  2 |     38.160 s |     438.8 m |    15.78 m/s |    0.445 m |
-|  Lap  3 |     38.170 s |     438.9 m |    15.84 m/s |    0.477 m |
-|  Lap  4 |     38.220 s |     438.9 m |    15.82 m/s |    0.474 m |
-|  Lap  5 |     38.290 s |     438.8 m |    15.76 m/s |    0.455 m |
-|  Lap  6 |     38.440 s |     438.9 m |    15.91 m/s |    0.463 m |
-|  Lap  7 |     38.210 s |     438.8 m |    15.88 m/s |    0.448 m |
-|  Lap  8 |     37.920 s |     438.6 m |    15.88 m/s |    0.460 m |
-|  Lap  9 |     37.780 s |     438.5 m |    15.91 m/s |    0.465 m | <-- FASTEST LAP ★
-|  Lap 10 |     37.980 s |     438.6 m |    15.91 m/s |    0.454 m |
-+---------+--------------+-------------+--------------+------------+
-  ⏱️ FASTEST LAP TIME : 37.780 s | 📊 AVERAGE LAP TIME: 38.199 s | 🛡️ COLLISIONS: 0
++---------+-------+------------+---------------+--------------+-------------+--------------+------------+
+|  Lap #  | Trim  |  Lap Time  | Gain vs Lap 1 | Delta vs Prv |  Distance   |  Peak Speed  | Min Clear. |
++---------+-------+------------+---------------+--------------+-------------+--------------+------------+
+|  Lap  1 |  T0   |   43.953 s |     +0.000 s  |    +0.000 s  |   432.86 m  |   14.17 m/s  |   0.628 m  |
+|  Lap  2 |  T1   |   42.240 s |     +1.713 s  |    +1.713 s  |   435.84 m  |   14.49 m/s  |   0.627 m  |
+|  Lap  3 |  T2   |   41.320 s |     +2.633 s  |    +0.920 s  |   436.44 m  |   14.77 m/s  |   0.645 m  |
+|  Lap  4 |  T4   |   39.953 s |     +4.000 s  |    +1.367 s  |   437.67 m  |   15.17 m/s  |   0.670 m  |
+|  Lap  5 |  T6   |   39.328 s |     +4.624 s  |    +0.624 s  |   438.85 m  |   15.51 m/s  |   0.617 m  |
+|  Lap  6 |  T7   |   38.960 s |     +4.993 s  |    +0.369 s  |   439.38 m  |   15.69 m/s  |   0.550 m  |
+|  Lap  7 |  T7   |   38.891 s |     +5.061 s  |    +0.068 s  |   439.24 m  |   15.67 m/s  |   0.537 m  | <-- FASTEST LAP ★
+|  Lap  8 |  T6   |   39.360 s |     +4.593 s  |    -0.469 s  |   438.88 m  |   15.52 m/s  |   0.611 m  |
+|  Lap  9 |  T7   |   39.000 s |     +4.953 s  |    +0.360 s  |   439.31 m  |   15.63 m/s  |   0.561 m  |
+|  Lap 10 |  T7   |   38.920 s |     +5.033 s  |    +0.080 s  |   439.20 m  |   15.67 m/s  |   0.552 m  |
++---------+-------+------------+---------------+--------------+-------------+--------------+------------+
+  ⏱️ FASTEST LAP TIME : 38.891 s (Lap 7) | 💰 CUMULATIVE TIME SAVED: +37.603 s | 🛡️ MIN CLEARANCE: 0.537 m (0 Collisions)
 ```
 
 ---
@@ -322,5 +324,8 @@ Use these concise technical answers during your **Individual Oral Project Defens
 7. **Q: How does the automatic Lap Counter avoid false triggers at the start of the race?**
    - **A:** We use spatial and temporal hysteresis. When the node starts, it latches the initial odometry pose $(x_0, y_0)$. The lap trigger only arms (`left_start_zone = True`) after the vehicle travels more than $5.0\text{ m}$ Euclidean distance from the start pose and accumulates at least $20.0\text{ m}$ of path length. A lap is counted only when the armed vehicle re-enters a $2.4\text{ m}$ gate around $(x_0, y_0)$ and at least $5.0\text{ s}$ have elapsed.
 
-8. **Q: How does the vehicle stop after completing Lap 10 and output final results?**
-   - **A:** When `current_lap >= 10`, the lap checker sets `race_finished = True` and triggers `_finish_race_and_stop()`. The node prints the formatted 10-lap ASCII summary table to the console, flushes all telemetry to CSV, publishes 10 zero-velocity brake commands (`speed = 0.0, steer = 0.0`), and exits cleanly with `raise SystemExit(0)`.
+8. **Q: How does the vehicle stop after completing Lap 10 and output final results without crashing?**
+   - **A:** At the Sakhir finish line (`sx = 30.78, sy = -22.72`), the vehicle crosses at $\sim 15.6\text{ m/s}$, requiring $\sim 12\text{ m}$ of physical braking runway ($d = v^2 / (2 a_{\max})$). If the node immediately locked `steering_angle = 0.0` and exited, the car would coast unsteered into Turn 1's wall. Instead, when `current_lap >= 10`, `_finish_race_and_stop()` sets `race_finished = True`, logs the 10-lap summary and CSV files (`lap_times_sakhir_v2_fast.csv` and `lap_time_gains_sakhir.csv`), and enters **Active Steered Cooldown Braking**: `lidar_callback()` commands `speed = 0.0` while continuing to compute active LiDAR steering (`steer, _ = self.core.step(...)`) to keep the car centered down the straight until `current_vel <= 0.05 m/s`, at which point it locks the wheels and calls `sys.exit(0)`.
+
+9. **Q: How does the 9-Stage Adaptive Time-Attack (`T0` $\rightarrow$ `T8`) work using only LiDAR data?**
+   - **A:** `RealLidarRaceCore` starts Lap 1 in the conservative reference trim `T0` (`min_speed = 4.20 m/s`, `a_lat_max = 9.00 m/s^2`, `max_speed = 16.20 m/s`), which is immune to 0–30 ms ROS 2 scheduling jitter. Throughout each lap, the node monitors the minimum LiDAR range `min(scan_msg.ranges)`. If the lap completes with `min_wall_clearance > 0.635 m`, `advance_pace_trim()` promotes the controller by $+2$ trims (or $+1$ trim if `> 0.585 m`), progressively raising `min_speed` (up to $6.12\text{ m/s}$), `a_lat_max` (up to $12.65\text{ m/s}^2$), and `max_speed` (up to $18.45\text{ m/s}$). Conversely, if `min_range` ever drops below $0.48\text{ m}$ mid-lap, `check_mid_lap_safety()` immediately downshifts back to `T0` mid-corner to prevent a collision.

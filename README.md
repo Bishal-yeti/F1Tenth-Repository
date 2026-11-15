@@ -3,10 +3,10 @@ The F1TENTH simulator for ROS 2 is a simulation environment designed to test con
 
 > ### 🏆 Sakhir GP Competition Project — Dual Reactive Controller Architecture
 > Looking for the **Competition Reactive Controller documentation, code architecture, execution steps, and Oral Defense guide**?
-> - 📘 **Full Technical Tutorial**: [CONTROLLER_TUTORIAL.md](CONTROLLER_TUTORIAL.md)
+> - 📘 **Full Technical Tutorial (Part B GitHub Documentation)**: [CONTROLLER_TUTORIAL.md](CONTROLLER_TUTORIAL.md)
 > - 🛡️ **Version 1 (Endurance Champion — 10 Laps Guaranteed)**: [`src/controllers/controllers/gap_node.py`](src/controllers/controllers/gap_node.py) (Git tag: `v1.0-stable`, Best Lap: **38.88 s**, 0 Collisions, 0.534m Min Clearance)
-> - ⚡ **Version 2 (Real-Time LiDAR Racing — Qualifying Edition)**: [`src/controllers/controllers/lidar_race_node.py`](src/controllers/controllers/lidar_race_node.py) (Best Lap: **37.78 s**, 0 Collisions, 0.445m Min Clearance, 8.82s faster over 10 laps)
-> - 📊 **Telemetry CSV Logs**: [`lap_times_sakhir.csv`](lap_times_sakhir.csv) and [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv)
+> - ⚡ **Version 2 (Pure Real-Time LiDAR 9-Stage Adaptive Time-Attack)**: [`src/controllers/controllers/lidar_race_node.py`](src/controllers/controllers/lidar_race_node.py) & [`src/controllers/controllers/lidar_race_core.py`](src/controllers/controllers/lidar_race_core.py) (Best Live ROS 2 Lap: **38.891 s**, **+5.061 s** single-lap gain, **+37.603 s** total time saved across 10 laps, 0 Collisions, 0.537m Min Clearance, Active Steered Cooldown Braking)
+> - 📊 **Telemetry & Time-Gain CSV Logs**: [`lap_times_sakhir.csv`](lap_times_sakhir.csv), [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv), and [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv)
 >
 > **Quick Competition Launch (Sakhir GP):**
 > ```bash
