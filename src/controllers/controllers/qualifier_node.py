@@ -29,7 +29,8 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Int32, Float32, String
 from visualization_msgs.msg import Marker, MarkerArray
 
-from controllers.qualifier_core import QualifierLidarCore, DEFAULTS_QUALIFIER
+from controllers.qualifier_core import QualifierLidarCore
+from controllers.lidar_race_core import DEFAULTS_V2 as DEFAULTS_QUALIFIER
 from controllers.telemetry_gui import RaceTelemetryGUI
 
 
@@ -184,20 +185,12 @@ class QualifierRaceNode(Node):
             self.total_distance += step_dist
         self.prev_pose = (x, y)
 
-        if self.last_traj_pose is None or float(np.hypot(x - self.last_traj_pose[0], y - self.last_traj_pose[1])) >= 0.25:
+        if self.last_traj_pose is None or float(np.hypot(x - self.last_traj_pose[0], y - self.last_traj_pose[1])) >= 1.50:
             self.last_traj_pose = (x, y)
             pt = Point(x=float(x), y=float(y), z=0.05)
             self.trajectory_points.append(pt)
-            if len(self.trajectory_points) > 4000:
-                self.trajectory_points = self.trajectory_points[-4000:]
-            ps = PoseStamped()
-            ps.header.stamp = msg.header.stamp
-            ps.header.frame_id = 'map'
-            ps.pose = msg.pose.pose
-            self.path_msg.header.stamp = msg.header.stamp
-            self.path_msg.poses.append(ps)
-            if len(self.path_msg.poses) > 4000:
-                self.path_msg.poses = self.path_msg.poses[-4000:]
+            if len(self.trajectory_points) > 300:
+                self.trajectory_points = self.trajectory_points[-300:]
 
         self._check_start_finish_crossing(t_sim)
         self._publish_live_timer_ticker(t_sim)
@@ -390,6 +383,11 @@ class QualifierRaceNode(Node):
             self.total_collisions += 1
             self._finish_race_and_stop(reason="COLLISION_WITH_BARRIER")
             return
+
+        if self.core.check_mid_lap_safety(min_range, cur_lap_dist=self.distance_traveled_this_lap):
+            self.get_logger().info(
+                f"[SAFETY DOWNSHIFT] Clearance={min_range:.3f}m < 0.48m; reverted to Reference Trim T0."
+            )
 
         steer, speed = self.core.step(
             scan_msg.ranges,

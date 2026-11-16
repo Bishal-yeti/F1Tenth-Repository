@@ -188,21 +188,13 @@ class LidarRaceNode(Node):
             self.total_distance += step_dist
         self.prev_pose = (x, y)
 
-        # Record 3D trajectory points every 0.25 m for RViz LINE_STRIP and Path displays
-        if self.last_traj_pose is None or float(np.hypot(x - self.last_traj_pose[0], y - self.last_traj_pose[1])) >= 0.25:
+        # Record 3D trajectory points every 1.50 m (max 300 pts) to avoid RViz/rclpy serialization lag
+        if self.last_traj_pose is None or float(np.hypot(x - self.last_traj_pose[0], y - self.last_traj_pose[1])) >= 1.50:
             self.last_traj_pose = (x, y)
             pt = Point(x=float(x), y=float(y), z=0.05)
             self.trajectory_points.append(pt)
-            if len(self.trajectory_points) > 4000:
-                self.trajectory_points = self.trajectory_points[-4000:]
-            ps = PoseStamped()
-            ps.header.stamp = msg.header.stamp
-            ps.header.frame_id = 'map'
-            ps.pose = msg.pose.pose
-            self.path_msg.header.stamp = msg.header.stamp
-            self.path_msg.poses.append(ps)
-            if len(self.path_msg.poses) > 4000:
-                self.path_msg.poses = self.path_msg.poses[-4000:]
+            if len(self.trajectory_points) > 300:
+                self.trajectory_points = self.trajectory_points[-300:]
 
         self._check_start_finish_crossing(t_sim)
         self._publish_live_timer_ticker(t_sim)
