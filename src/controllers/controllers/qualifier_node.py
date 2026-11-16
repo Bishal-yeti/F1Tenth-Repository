@@ -41,7 +41,7 @@ class QualifierRaceNode(Node):
             self.declare_parameter(key, default_val)
 
         self.declare_parameter('target_laps', 10)
-        self.declare_parameter('qualifying_attack_laps', 4)
+        self.declare_parameter('qualifying_attack_laps', 3)
         self.declare_parameter('stop_after_target_laps', True)
         self.declare_parameter('csv_log_path', 'lap_times_sakhir_qualifier.csv')
 
@@ -385,7 +385,6 @@ class QualifierRaceNode(Node):
 
         min_range = float(np.min(np.nan_to_num(scan_msg.ranges, nan=30.0, posinf=30.0)))
         self.min_wall_clearance_this_lap = min(self.min_wall_clearance_this_lap, min_range)
-        self.core.check_mid_lap_safety(min_range)
 
         if min_range < 0.17:
             self.total_collisions += 1
@@ -396,7 +395,8 @@ class QualifierRaceNode(Node):
             scan_msg.ranges,
             scan_msg.angle_min,
             scan_msg.angle_increment,
-            self.current_vel
+            self.current_vel,
+            cur_lap_dist=self.distance_traveled_this_lap,
         )
         self.prev_steer = steer
         self.current_speed_cmd = speed

@@ -4,15 +4,15 @@
 ![Python 3.10+](https://img.shields.io/badge/PYTHON-3.10%2B-2563eb?style=for-the-badge&logo=python&logoColor=white&labelColor=1e293b)
 ![F1Tenth Gym ROS](https://img.shields.io/badge/F1TENTH-GYM_ROS-dc2626?style=for-the-badge&labelColor=1e293b)
 ![Validation 10 Collision-Free Laps](https://img.shields.io/badge/VALIDATION-10_COLLISION--FREE_LAPS-16a34a?style=for-the-badge&labelColor=1e293b)
-![Fastest Lap 36.680s](https://img.shields.io/badge/QUALIFIER_BEST-36.680_s-f59e0b?style=for-the-badge&labelColor=1e293b)
+![Fastest Lap 36.400s](https://img.shields.io/badge/QUALIFIER_BEST-36.400_s_(18.5_m%2Fs)-f59e0b?style=for-the-badge&labelColor=1e293b)
 
 - **Author**: Bishal (`Bishal-yeti`)
 - **Course**: Autonomous Vehicles — F1Tenth Autonomous Racing Competition
 - **Assessment**: Reactive Controllers Competition Project (Part A & Part B Implementation Evidence)
 - **Assigned Track**: Sakhir GP Circuit (`Sakhir_map`, `sx: 30.78, sy: -22.72, stheta: -2.635`)
 - **Controllers Included**:
-  - 🔥 **Version 3 (`qualifier_node` — Ultra-Fast Qualifying Time-Attack Edition)**:
-    - Unleashes **`Q-MAX` Qualifying Trim** immediately from Lap 1 (`v_max = 19.80 m/s`, `v_min = 6.45 m/s`, `a_lat = 13.60 m/s²`, `a_brake = 8.50 m/s²`, `inside_width_scale = 0.98`) for 4 blazing qualifying laps (**`37.800 s`, `38.030 s`, `37.150 s`, `36.680 s` ★** at **`16.90 m/s` / `60.8 km/h`** peak speed!), then automatically shifts to `Q-SAFE` Conservation Trim for Laps 5–10 (or stops after 4 laps with `--ros-args -p target_laps:=4`).
+  - 🔥 **Version 3 (`qualifier_node` — Ultra-Fast `Q-HYPER` Qualifying Time-Attack Edition)**:
+    - Unleashes **`Q-HYPER` Qualifying Trim + Raw-Cone Straightaway DRS (`18.50 m/s` / `66.6 km/h`) + `22.0 m` High-Speed Pre-Braking** right from Lap 1 for 3 blazing qualifying laps (**`37.780 s` $\rightarrow$ `36.450 s` $\rightarrow$ `36.400 s` ★**), then smoothly transitions past the start/finish chicane into `Q-SAFE` Conservation Trim for Laps 4–10 (completing **10/10 laps with 0 collisions**!).
   - ⚡ **Version 2 (`lidar_race_node` — Stable 10-Stage Adaptive Time-Attack, Git tag `v2.0-stable-10laps`)**:
     - Pure Real-Time LiDAR 10-Stage Adaptive Pace (`T0` $\rightarrow$ `T9`) + Straightaway DRS Boost + Active Steered Cooldown Stop + Live GUI Speedometer/Lap-Time Window (**`38.490 s` fastest lap**, **`+5.270 s` single-lap gain**, **`+38.600 s` cumulative time saved**, **`16.17 m/s` peak speed**, **0 Collisions**).
   - 🛡️ **Version 1 (`gap_node` — Endurance Fast-Centerline Champion, Git tag `v1.0-stable`)**:
@@ -473,34 +473,34 @@ source install/setup.bash
 | Evaluation Metric | Recorded Value | Status |
 | :--- | :---: | :---: |
 | **Test 1 — Consecutive Collision-Free Laps** | `10 / 10 laps` (`0 Collisions` + Cooldown Stop to `0.00 m/s`) | ✅ Completed |
-| **Test 2 — Fastest Single-Lap Time (Qualifier Mode)** | **`36.680 s`** (`qualifier_node` `Q-MAX`, Lap 4 at `16.90 m/s` / `60.8 km/h`) | ✅ Completed |
+| **Test 2 — Fastest Single-Lap Time (Qualifier Mode)** | **`36.400 s`** (`qualifier_node` `Q-HYPER`, Lap 3 at **`18.50 m/s` / `66.6 km/h`**) | ✅ Completed |
 | **Test 2 — Fastest Single-Lap Time (10-Stage Adaptive)** | **`38.490 s`** (`lidar_race_node` `T8`) / **`38.891 s`** (Live ROS 2 + RViz2) | ✅ Completed |
 | **Single-Lap Time Gained vs. Sighting Lap 1** | **`+5.270 s`** (`43.760 s` $\rightarrow$ `38.490 s` in Adaptive Mode) | ✅ Verified |
 | **Cumulative Time Saved Across 10 Laps** | **`+38.600 s`** (Saved to `lap_time_gains_sakhir.csv`) | ✅ Verified |
-| **Distance Traveled per Lap (Racing Line)** | `~438.5 m / lap` (`4,385.3 m` total over 10 laps via `/ego_racecar/odom`) | ✅ Verified |
-| **Peak Velocity on Main Straight** | **`16.90 m/s`** (`60.8 km/h` in `qualifier_node`) / **`16.17 m/s`** (`lidar_race_node`) | ✅ Verified |
-| **Global Minimum Wall Clearance** | **`0.495 m` – `0.537 m`** (`lidar_race_node`) / **`0.370 m`** (`qualifier_node` `Q-MAX`) | ✅ Verified |
+| **Distance Traveled per Lap (Racing Line)** | `~439.5 m / lap` (`4,394.9 m` total over 10 laps via `/ego_racecar/odom`) | ✅ Verified |
+| **Peak Velocity on Main Straight** | **`18.50 m/s`** (`66.6 km/h` in `qualifier_node`) / **`16.17 m/s`** (`lidar_race_node`) | ✅ Verified |
+| **Global Minimum Wall Clearance** | **`0.495 m` – `0.537 m`** (`lidar_race_node`) / **`0.261 – 0.395 m`** (`qualifier_node` `Q-HYPER`) | ✅ Verified |
 | **RViz 3D HUD & Trajectory Visualization** | Active via `/lap_hud_markers` (`ego_racecar/base_link`), `/ftg_trajectory_marker` (`LINE_STRIP`) & `/ftg_path` | ✅ Verified |
 | **Separate Live GUI Telemetry Window** | Active via `RaceTelemetryGUI` (`telemetry_gui.py`) | ✅ Verified |
 
 ---
 
-### Ultra-Fast Qualifier Mode Telemetry Table (`qualifier_node.py` — `36.680 s` Edition)
+### Ultra-Fast Qualifier Mode Telemetry Table (`qualifier_node.py` — `36.400 s` / `18.50 m/s` Edition)
 
-Saved in [`lap_times_sakhir_qualifier.csv`](lap_times_sakhir_qualifier.csv) (`Q-MAX` Laps 1–4 $\rightarrow$ `Q-SAFE` Conservation Laps 5–10):
+Saved in [`lap_times_sakhir_qualifier.csv`](lap_times_sakhir_qualifier.csv) (`Q-HYPER` Laps 1–3 $\rightarrow$ `Q-SAFE` Conservation Laps 4–10):
 
 | Lap # | Mode | Lap Time (`s`) | Gain vs. Lap 1 (`s`) | Delta vs. Prev (`s`) | Lap Distance (`m`) | Peak Speed (`m/s`) | Min Clearance (`m`) |
 | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Lap 1** | `Q-MAX` | `37.800 s` | `+0.000 s` | `+0.000 s` | `438.42 m` | `16.81 m/s` | `0.370 m` |
-| **Lap 2** | `Q-MAX` | `38.030 s` | `-0.230 s` | `-0.230 s` | `438.55 m` | `16.86 m/s` | `0.376 m` |
-| **Lap 3** | `Q-MAX` | **`37.150 s`** | `+0.650 s` | `+0.880 s` | `438.19 m` | **`16.90 m/s`** | `0.382 m` |
-| **Lap 4** | `Q-MAX` | **`36.680 s`** ★ | **`+1.120 s`** ★ | `+0.470 s` | `437.94 m` | **`16.90 m/s`** | `0.381 m` |
-| **Lap 5** | `Q-SAFE` | `38.910 s` | `-1.110 s` | `-2.230 s` | `438.92 m` | `15.74 m/s` | `0.564 m` |
-| **Lap 6** | `Q-SAFE` | `38.880 s` | `-1.080 s` | `+0.030 s` | `438.88 m` | `15.73 m/s` | `0.549 m` |
-| **Lap 7** | `Q-SAFE` | `38.740 s` | `-0.940 s` | `+0.140 s` | `438.85 m` | `15.74 m/s` | `0.563 m` |
-| **Lap 8** | `Q-SAFE` | `38.560 s` | `-0.760 s` | `+0.180 s` | `438.80 m` | `15.74 m/s` | `0.546 m` |
-| **Lap 9** | `Q-SAFE` | `38.820 s` | `-1.020 s` | `-0.260 s` | `438.87 m` | `15.73 m/s` | `0.553 m` |
-| **Lap 10** | `Q-SAFE` | `38.980 s` | `-1.180 s` | `-0.160 s` | `438.91 m` | `15.75 m/s` | `0.552 m` |
+| **Lap 1** | `Q-HYPER` | `37.780 s` | `+0.000 s` | `+0.000 s` | `438.41 m` | **`18.50 m/s`** | `0.261 m` |
+| **Lap 2** | `Q-HYPER` | **`36.450 s`** | **`+1.330 s`** | `+1.330 s` | `440.73 m` | **`18.50 m/s`** | `0.376 m` |
+| **Lap 3** | `Q-HYPER` | **`36.400 s`** ★ | **`+1.380 s`** ★ | `+0.050 s` | `440.67 m` | **`18.50 m/s`** | `0.395 m` |
+| **Lap 4** | `Q-SAFE` | `38.900 s` | `-1.120 s` | `-2.500 s` | `439.49 m` | `17.73 m/s` | `0.558 m` |
+| **Lap 5** | `Q-SAFE` | `39.330 s` | `-1.550 s` | `-0.430 s` | `439.20 m` | `15.59 m/s` | `0.544 m` |
+| **Lap 6** | `Q-SAFE` | `39.040 s` | `-1.260 s` | `+0.290 s` | `439.19 m` | `15.64 m/s` | `0.566 m` |
+| **Lap 7** | `Q-SAFE` | `39.360 s` | `-1.580 s` | `-0.320 s` | `439.29 m` | `15.64 m/s` | `0.571 m` |
+| **Lap 8** | `Q-SAFE` | `38.980 s` | `-1.200 s` | `+0.380 s` | `439.19 m` | `15.66 m/s` | `0.567 m` |
+| **Lap 9** | `Q-SAFE` | `39.090 s` | `-1.310 s` | `-0.110 s` | `439.37 m` | `15.63 m/s` | `0.555 m` |
+| **Lap 10** | `Q-SAFE` | `38.790 s` | `-1.010 s` | `+0.300 s` | `439.32 m` | `15.63 m/s` | `0.565 m` |
 
 ---
 
