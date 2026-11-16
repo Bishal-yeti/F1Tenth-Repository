@@ -533,7 +533,15 @@ Saved in [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv) and [`la
 ### 🎥 Video Evidence
 
 - **Full Sakhir GP Competition Demonstration Video (Vehicle navigating Sakhir GP + Visible Lap Counter + Live Lap Timer + Distance & RViz 3D HUD/Trajectory)**:
-  - 📁 **Direct Repository Video File**: [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) ([Download / Watch Raw MP4](https://github.com/Bishal-yeti/F1Tenth-Repository/raw/main/videos/Sakhir_GP_10_Laps_Demonstration.mp4))
+  <p align="center">
+    <a href="videos/Sakhir_GP_10_Laps_Demonstration.mp4">
+      <img src="docs/Sakhir_GP_10_Laps_Demo.gif" width="92%" alt="Sakhir GP 10-Lap Autonomous Racing Demonstration" />
+    </a>
+    <br />
+    <em>🎬 Inline Browser Playback — Sakhir GP Autonomous Racing + Live Lap Counter & Timer (Click image or link below for full MP4)</em>
+  </p>
+
+  - ▶️ **Play / Download Full High-Resolution MP4**: [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) ([Direct Raw MP4 Stream](https://github.com/Bishal-yeti/F1Tenth-Repository/raw/main/videos/Sakhir_GP_10_Laps_Demonstration.mp4))
   - **Simulator Launch & Autonomous Execution Reference**:
     https://github.com/user-attachments/assets/1791be99-73b6-4a22-acc2-6efa6fd40e5f
     *(Repository MP4: [`videos/Launch_Simulation.mp4`](videos/Launch_Simulation.mp4))*
