@@ -4,15 +4,19 @@
 ![Python 3.10+](https://img.shields.io/badge/PYTHON-3.10%2B-2563eb?style=for-the-badge&logo=python&logoColor=white&labelColor=1e293b)
 ![F1Tenth Gym ROS](https://img.shields.io/badge/F1TENTH-GYM_ROS-dc2626?style=for-the-badge&labelColor=1e293b)
 ![Validation 10 Collision-Free Laps](https://img.shields.io/badge/VALIDATION-10_COLLISION--FREE_LAPS-16a34a?style=for-the-badge&labelColor=1e293b)
-![Fastest Lap 38.490s](https://img.shields.io/badge/FASTEST_LAP-38.490_s-f59e0b?style=for-the-badge&labelColor=1e293b)
+![Fastest Lap 36.680s](https://img.shields.io/badge/QUALIFIER_BEST-36.680_s-f59e0b?style=for-the-badge&labelColor=1e293b)
 
 - **Author**: Bishal (`Bishal-yeti`)
 - **Course**: Autonomous Vehicles — F1Tenth Autonomous Racing Competition
 - **Assessment**: Reactive Controllers Competition Project (Part A & Part B Implementation Evidence)
 - **Assigned Track**: Sakhir GP Circuit (`Sakhir_map`, `sx: 30.78, sy: -22.72, stheta: -2.635`)
 - **Controllers Included**:
-  - **Version 2 (`lidar_race_node`)**: Pure Real-Time LiDAR 10-Stage Adaptive Time-Attack + Straightaway DRS Boost + Active Steered Cooldown Stop + Live GUI Speedometer/Lap-Time Window (**`38.490 s` fastest lap**, **`+5.270 s` single-lap gain**, **`+38.600 s` cumulative time saved**, **`16.17 m/s` peak speed**, **0 Collisions**).
-  - **Version 1 (`gap_node`)**: Endurance Fast-Centerline Champion, Git tag `v1.0-stable` (**`38.880 s` fastest lap**, **0 Collisions**).
+  - 🔥 **Version 3 (`qualifier_node` — Ultra-Fast Qualifying Time-Attack Edition)**:
+    - Unleashes **`Q-MAX` Qualifying Trim** immediately from Lap 1 (`v_max = 19.80 m/s`, `v_min = 6.45 m/s`, `a_lat = 13.60 m/s²`, `a_brake = 8.50 m/s²`, `inside_width_scale = 0.98`) for 4 blazing qualifying laps (**`37.800 s`, `38.030 s`, `37.150 s`, `36.680 s` ★** at **`16.90 m/s` / `60.8 km/h`** peak speed!), then automatically shifts to `Q-SAFE` Conservation Trim for Laps 5–10 (or stops after 4 laps with `--ros-args -p target_laps:=4`).
+  - ⚡ **Version 2 (`lidar_race_node` — Stable 10-Stage Adaptive Time-Attack, Git tag `v2.0-stable-10laps`)**:
+    - Pure Real-Time LiDAR 10-Stage Adaptive Pace (`T0` $\rightarrow$ `T9`) + Straightaway DRS Boost + Active Steered Cooldown Stop + Live GUI Speedometer/Lap-Time Window (**`38.490 s` fastest lap**, **`+5.270 s` single-lap gain**, **`+38.600 s` cumulative time saved**, **`16.17 m/s` peak speed**, **0 Collisions**).
+  - 🛡️ **Version 1 (`gap_node` — Endurance Fast-Centerline Champion, Git tag `v1.0-stable`)**:
+    - Constant endurance trim (**`38.880 s` fastest lap**, **0 Collisions**).
 
 ---
 
@@ -344,13 +348,26 @@ Choose **Option A** if you already have Ubuntu 22.04 + ROS 2 Humble + `f1tenth_g
    source /opt/ros/humble/setup.bash && source install/setup.bash
    ros2 launch f1tenth_gym_ros gym_bridge_launch.py
    ```
-2. **Terminal 2 — Launch the Real-Time LiDAR Adaptive Racing Controller (Opens Live Speed & Lap-Time GUI Window)**:
-   ```bash
-   cd ~/F1Tenth-Repository
-   source /opt/ros/humble/setup.bash && source install/setup.bash
-   ros2 run controllers lidar_race_node
-   ```
-   *(Or run Version 1 Endurance Mode with `ros2 run controllers gap_node`).*
+2. **Terminal 2 — Choose Your Controller Mode (Each Opens the Live Speed & Lap-Time GUI Window)**:
+   - **Mode A — Ultra-Fast Qualifier Time-Attack (`36.680 s` Fastest Lap, `16.90 m/s` Peak Speed)**:
+     ```bash
+     cd ~/F1Tenth-Repository
+     source /opt/ros/humble/setup.bash && source install/setup.bash
+     ros2 run controllers qualifier_node
+     ```
+     *(Or run a 4-lap qualifying sprint that stops automatically after Lap 4: `ros2 run controllers qualifier_node --ros-args -p target_laps:=4`).*
+   - **Mode B — Stable 10-Stage Adaptive LiDAR Controller (`38.490 s` Best Lap, `+38.600 s` Time Saved)**:
+     ```bash
+     cd ~/F1Tenth-Repository
+     source /opt/ros/humble/setup.bash && source install/setup.bash
+     ros2 run controllers lidar_race_node
+     ```
+   - **Mode C — Version 1 Endurance Fast-Centerline Controller (`38.880 s` Best Lap)**:
+     ```bash
+     cd ~/F1Tenth-Repository
+     source /opt/ros/humble/setup.bash && source install/setup.bash
+     ros2 run controllers gap_node
+     ```
 
 ---
 
@@ -456,18 +473,38 @@ source install/setup.bash
 | Evaluation Metric | Recorded Value | Status |
 | :--- | :---: | :---: |
 | **Test 1 — Consecutive Collision-Free Laps** | `10 / 10 laps` (`0 Collisions` + Cooldown Stop to `0.00 m/s`) | ✅ Completed |
-| **Test 2 — Fastest Single-Lap Time** | **`38.490 s`** (Benchmark `T8`) / **`38.891 s`** (Live ROS 2 + RViz2) | ✅ Completed |
-| **Single-Lap Time Gained vs. Sighting Lap 1** | **`+5.270 s`** (`43.760 s` $\rightarrow$ `38.490 s`) | ✅ Verified |
+| **Test 2 — Fastest Single-Lap Time (Qualifier Mode)** | **`36.680 s`** (`qualifier_node` `Q-MAX`, Lap 4 at `16.90 m/s` / `60.8 km/h`) | ✅ Completed |
+| **Test 2 — Fastest Single-Lap Time (10-Stage Adaptive)** | **`38.490 s`** (`lidar_race_node` `T8`) / **`38.891 s`** (Live ROS 2 + RViz2) | ✅ Completed |
+| **Single-Lap Time Gained vs. Sighting Lap 1** | **`+5.270 s`** (`43.760 s` $\rightarrow$ `38.490 s` in Adaptive Mode) | ✅ Verified |
 | **Cumulative Time Saved Across 10 Laps** | **`+38.600 s`** (Saved to `lap_time_gains_sakhir.csv`) | ✅ Verified |
-| **Distance Traveled per Lap (Racing Line)** | `~438.9 m / lap` (`4,377.7 m` total over 10 laps via `/ego_racecar/odom`) | ✅ Verified |
-| **Peak Velocity on Main Straight** | **`16.17 m/s`** (`58.2 km/h`) | ✅ Verified |
-| **Global Minimum Wall Clearance** | **`0.495 m` – `0.537 m`** (`0.966 m` during post-Lap-10 cooldown stop) | ✅ Verified |
+| **Distance Traveled per Lap (Racing Line)** | `~438.5 m / lap` (`4,385.3 m` total over 10 laps via `/ego_racecar/odom`) | ✅ Verified |
+| **Peak Velocity on Main Straight** | **`16.90 m/s`** (`60.8 km/h` in `qualifier_node`) / **`16.17 m/s`** (`lidar_race_node`) | ✅ Verified |
+| **Global Minimum Wall Clearance** | **`0.495 m` – `0.537 m`** (`lidar_race_node`) / **`0.370 m`** (`qualifier_node` `Q-MAX`) | ✅ Verified |
 | **RViz 3D HUD & Trajectory Visualization** | Active via `/lap_hud_markers` (`ego_racecar/base_link`), `/ftg_trajectory_marker` (`LINE_STRIP`) & `/ftg_path` | ✅ Verified |
 | **Separate Live GUI Telemetry Window** | Active via `RaceTelemetryGUI` (`telemetry_gui.py`) | ✅ Verified |
 
 ---
 
-### Complete 10-Lap Telemetry & Time-Gain Table (`lidar_race_node.py`)
+### Ultra-Fast Qualifier Mode Telemetry Table (`qualifier_node.py` — `36.680 s` Edition)
+
+Saved in [`lap_times_sakhir_qualifier.csv`](lap_times_sakhir_qualifier.csv) (`Q-MAX` Laps 1–4 $\rightarrow$ `Q-SAFE` Conservation Laps 5–10):
+
+| Lap # | Mode | Lap Time (`s`) | Gain vs. Lap 1 (`s`) | Delta vs. Prev (`s`) | Lap Distance (`m`) | Peak Speed (`m/s`) | Min Clearance (`m`) |
+| :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Lap 1** | `Q-MAX` | `37.800 s` | `+0.000 s` | `+0.000 s` | `438.42 m` | `16.81 m/s` | `0.370 m` |
+| **Lap 2** | `Q-MAX` | `38.030 s` | `-0.230 s` | `-0.230 s` | `438.55 m` | `16.86 m/s` | `0.376 m` |
+| **Lap 3** | `Q-MAX` | **`37.150 s`** | `+0.650 s` | `+0.880 s` | `438.19 m` | **`16.90 m/s`** | `0.382 m` |
+| **Lap 4** | `Q-MAX` | **`36.680 s`** ★ | **`+1.120 s`** ★ | `+0.470 s` | `437.94 m` | **`16.90 m/s`** | `0.381 m` |
+| **Lap 5** | `Q-SAFE` | `38.910 s` | `-1.110 s` | `-2.230 s` | `438.92 m` | `15.74 m/s` | `0.564 m` |
+| **Lap 6** | `Q-SAFE` | `38.880 s` | `-1.080 s` | `+0.030 s` | `438.88 m` | `15.73 m/s` | `0.549 m` |
+| **Lap 7** | `Q-SAFE` | `38.740 s` | `-0.940 s` | `+0.140 s` | `438.85 m` | `15.74 m/s` | `0.563 m` |
+| **Lap 8** | `Q-SAFE` | `38.560 s` | `-0.760 s` | `+0.180 s` | `438.80 m` | `15.74 m/s` | `0.546 m` |
+| **Lap 9** | `Q-SAFE` | `38.820 s` | `-1.020 s` | `-0.260 s` | `438.87 m` | `15.73 m/s` | `0.553 m` |
+| **Lap 10** | `Q-SAFE` | `38.980 s` | `-1.180 s` | `-0.160 s` | `438.91 m` | `15.75 m/s` | `0.552 m` |
+
+---
+
+### Complete 10-Lap Stable Adaptive Telemetry & Time-Gain Table (`lidar_race_node.py`)
 
 Saved in [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv) and [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv):
 
