@@ -19,12 +19,14 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import LaserScan
-from nav_msgs.msg import Odometry
+from nav_msgs.msg import Odometry, Path
+from geometry_msgs.msg import Point, PoseStamped
 from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Int32, Float32, String
 from visualization_msgs.msg import Marker, MarkerArray
 
 from controllers.lidar_race_core import RealLidarRaceCore, DEFAULTS_V2, PACE_TRIMS
+from controllers.telemetry_gui import RaceTelemetryGUI
 
 
 class LidarRaceNode(Node):
@@ -90,6 +92,16 @@ class LidarRaceNode(Node):
         self.total_collisions = 0
         self.last_timer_print_sim_time = 0.0
         self.last_hud_pub_sim_time = 0.0
+        self.trajectory_points = []
+        self.last_traj_pose = None
+        self.path_msg = Path()
+        self.path_msg.header.frame_id = 'map'
+
+        # Launch Live Graphical Telemetry & Lap Timer Window (background daemon thread)
+        self.gui = RaceTelemetryGUI(
+            title="F1Tenth Sakhir GP — Live Speedometer & Lap Timer Window (LiDAR v2)",
+            target_laps=self.target_laps,
+        )
 
         # ROS 2 Publishers
         self.drive_pub = self.create_publisher(AckermannDriveStamped, '/drive', 10)
@@ -98,6 +110,10 @@ class LidarRaceNode(Node):
         self.best_lap_pub = self.create_publisher(Float32, '/best_lap_time', 10)
         self.telemetry_pub = self.create_publisher(String, '/race_telemetry', 10)
         self.marker_pub = self.create_publisher(MarkerArray, '/lap_hud_markers', 10)
+        self.hud_marker_pub = self.create_publisher(Marker, '/ftg_hud_marker', 10)
+        self.target_marker_pub = self.create_publisher(Marker, '/ftg_target_marker', 10)
+        self.traj_marker_pub = self.create_publisher(Marker, '/ftg_trajectory_marker', 10)
+        self.path_pub = self.create_publisher(Path, '/ftg_path', 10)
 
         # ROS 2 Subscribers
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.lidar_callback, 10)
@@ -109,15 +125,16 @@ class LidarRaceNode(Node):
         p = self.core.p
         msg = f"""
 ==============================================================================
-  REAL-TIME LIDAR DYNAMIC RACING CONTROLLER (V2: 9-STAGE TIME-ATTACK EDITION)
+  REAL-TIME LIDAR DYNAMIC RACING CONTROLLER (V2: 10-STAGE TIME-ATTACK EDITION)
 ==============================================================================
-  Perception Mode : Pure Real-Time LiDAR ({p['fov_angle_deg']}° FOV)
-  Adaptive Trims  : T0 (16.2 m/s, 4.20 m/s) -> T8 (18.45 m/s, 6.12 m/s)
+  Perception Mode : Pure Real-Time LiDAR ({p['fov_angle_deg']}° FOV + Straightaway DRS)
+  Adaptive Trims  : T0 (16.2 m/s, 4.20 m/s) -> T9 (18.85 m/s, 6.25 m/s)
   Safety Bubble   : {p['bubble_radius']:.2f} m | Symmetrical Chicane Safety Margin: {p['car_width_safety']:.2f} m
   Target Laps     : {self.target_laps} consecutive collision-free laps (Active Steered Cooldown)
   Main CSV Log    : {os.path.abspath(self.csv_log_path)}
   Time-Gain Log   : {os.path.abspath(self.gains_csv_path)}
-  RViz2 HUD Topic : /lap_hud_markers (10 Hz throttled)
+  RViz2 HUD Frame : ego_racecar/base_link (/lap_hud_markers, /ftg_hud_marker, /ftg_path)
+  Live GUI Window : Enabled (Separate Speedometer & Lap-Time Dashboard)
 ==============================================================================
 """
         self.get_logger().info(msg)
@@ -170,6 +187,22 @@ class LidarRaceNode(Node):
             self.distance_traveled_this_lap += step_dist
             self.total_distance += step_dist
         self.prev_pose = (x, y)
+
+        # Record 3D trajectory points every 0.25 m for RViz LINE_STRIP and Path displays
+        if self.last_traj_pose is None or float(np.hypot(x - self.last_traj_pose[0], y - self.last_traj_pose[1])) >= 0.25:
+            self.last_traj_pose = (x, y)
+            pt = Point(x=float(x), y=float(y), z=0.05)
+            self.trajectory_points.append(pt)
+            if len(self.trajectory_points) > 4000:
+                self.trajectory_points = self.trajectory_points[-4000:]
+            ps = PoseStamped()
+            ps.header.stamp = msg.header.stamp
+            ps.header.frame_id = 'map'
+            ps.pose = msg.pose.pose
+            self.path_msg.header.stamp = msg.header.stamp
+            self.path_msg.poses.append(ps)
+            if len(self.path_msg.poses) > 4000:
+                self.path_msg.poses = self.path_msg.poses[-4000:]
 
         self._check_start_finish_crossing(t_sim)
         self._publish_live_timer_ticker(t_sim)
@@ -256,6 +289,17 @@ class LidarRaceNode(Node):
             box += f"\n    Lap {i:2d} [{tr}] : {lt:6.3f} s  (Gain vs Lap 1: {gn:+6.3f} s){star}"
         box += "\n╚══════════════════════════════════════════════════════════════════════════════╝"
         self.get_logger().info(box)
+
+        self.gui.add_completed_lap(
+            lap_num=self.current_lap,
+            trim=used_trim,
+            lap_time=lap_time,
+            gain_vs_lap1=gain_vs_lap1,
+            gain_vs_prev=gain_vs_prev,
+            lap_dist=self.distance_traveled_this_lap,
+            peak_speed=self.peak_velocity_this_lap,
+            min_clear=self.min_wall_clearance_this_lap,
+        )
 
         self._append_lap_to_csv(lap_time, used_trim, gain_vs_lap1, gain_vs_prev, cum_saved, avg_lap, total_time)
 
@@ -460,23 +504,50 @@ class LidarRaceNode(Node):
 
         drive_msg = AckermannDriveStamped()
         drive_msg.header.stamp = scan_msg.header.stamp
-        drive_msg.header.frame_id = 'base_link'
+        drive_msg.header.frame_id = 'ego_racecar/base_link'
         drive_msg.drive.steering_angle = float(steer)
         drive_msg.drive.speed = float(speed)
         self.drive_pub.publish(drive_msg)
 
     def _publish_hud_markers(self, stamp):
         t_sim = self._sim_time(stamp)
-        if self.race_finished or (t_sim - self.last_hud_pub_sim_time) < 0.10:
+        if (t_sim - self.last_hud_pub_sim_time) < 0.10:
             return
         self.last_hud_pub_sim_time = t_sim
+
+        elapsed = t_sim - (self.lap_start_time or t_sim) if not self.race_finished else 0.0
+        cum_saved = float(np.sum([max(0.0, g) for g in self.lap_gains_vs_lap1])) if self.lap_gains_vs_lap1 else 0.0
+        status_str = "COOLDOWN STOP" if (self.race_finished and self.current_vel > 0.05) else (
+            "FINISHED (10/10)" if self.race_finished else "RACING"
+        )
+
+        # Update the separate Live Graphical Telemetry Window
+        self.gui.update_live(
+            status=status_str,
+            trim=self.core.trim_label,
+            current_lap=self.current_lap,
+            current_lap_time=elapsed,
+            best_lap_time=self.best_lap_time if self.lap_times else None,
+            cum_saved=cum_saved,
+            speed_mps=self.current_vel,
+            peak_speed_mps=self.peak_velocity_this_lap,
+            steer_rad=self.prev_steer,
+            lap_dist_m=self.distance_traveled_this_lap,
+            total_dist_m=self.total_distance,
+            min_clearance_m=self.min_wall_clearance_this_lap,
+            collisions=self.total_collisions,
+        )
+
+        if self.race_finished:
+            return
+
         marker_array = MarkerArray()
-        elapsed = t_sim - (self.lap_start_time or t_sim)
         best_lap_str = f"{self.best_lap_time:.2f}s" if self.lap_times else "--.--s"
         last_gain_str = f"{self.lap_gains_vs_lap1[-1]:+.2f}s" if self.lap_gains_vs_lap1 else "+0.00s"
 
+        # 1. 3D Floating HUD Text Marker above ego_racecar/base_link
         text_marker = Marker()
-        text_marker.header.frame_id = 'base_link'
+        text_marker.header.frame_id = 'ego_racecar/base_link'
         text_marker.header.stamp = stamp
         text_marker.ns = 'lidar_race_hud'
         text_marker.id = 1
@@ -493,11 +564,58 @@ class LidarRaceNode(Node):
         text_marker.text = (
             f"[LIDAR v2 | {self.core.trim_label}]\n"
             f"LAP:  {self.current_lap}/{self.target_laps}\n"
-            f"TIME: {elapsed:5.2f}s\n"
+            f"TIME: {elapsed:5.2f}s | DIST: {self.distance_traveled_this_lap:5.1f}m\n"
             f"BEST: {best_lap_str} ({last_gain_str})\n"
             f"SPD:  {self.current_vel:4.1f} m/s"
         )
         marker_array.markers.append(text_marker)
+        self.hud_marker_pub.publish(text_marker)
+
+        # 2. 3D Selected Target Point Sphere Marker in ego_racecar/laser frame
+        dbg = getattr(self.core, 'last_debug', None)
+        if dbg and 'target_angle' in dbg and 'best_dist' in dbg:
+            t_ang = float(dbg['target_angle'])
+            t_dst = float(min(dbg['best_dist'], 12.0))
+            target_marker = Marker()
+            target_marker.header.frame_id = 'ego_racecar/laser'
+            target_marker.header.stamp = stamp
+            target_marker.ns = 'ftg_target'
+            target_marker.id = 2
+            target_marker.type = Marker.SPHERE
+            target_marker.action = Marker.ADD
+            target_marker.pose.position.x = t_dst * float(np.cos(t_ang))
+            target_marker.pose.position.y = t_dst * float(np.sin(t_ang))
+            target_marker.pose.position.z = 0.15
+            target_marker.scale.x = 0.32
+            target_marker.scale.y = 0.32
+            target_marker.scale.z = 0.32
+            target_marker.color.r = 0.1
+            target_marker.color.g = 1.0
+            target_marker.color.b = 0.3
+            target_marker.color.a = 0.90
+            marker_array.markers.append(target_marker)
+            self.target_marker_pub.publish(target_marker)
+
+        # 3. 3D Continuous Racing Trajectory Line (LINE_STRIP) in map frame
+        if len(self.trajectory_points) >= 2:
+            traj_marker = Marker()
+            traj_marker.header.frame_id = 'map'
+            traj_marker.header.stamp = stamp
+            traj_marker.ns = 'ftg_trajectory'
+            traj_marker.id = 3
+            traj_marker.type = Marker.LINE_STRIP
+            traj_marker.action = Marker.ADD
+            traj_marker.pose.orientation.w = 1.0
+            traj_marker.scale.x = 0.10
+            traj_marker.color.r = 1.0
+            traj_marker.color.g = 0.55
+            traj_marker.color.b = 0.05
+            traj_marker.color.a = 0.85
+            traj_marker.points = self.trajectory_points
+            marker_array.markers.append(traj_marker)
+            self.traj_marker_pub.publish(traj_marker)
+            self.path_pub.publish(self.path_msg)
+
         self.marker_pub.publish(marker_array)
 
 
