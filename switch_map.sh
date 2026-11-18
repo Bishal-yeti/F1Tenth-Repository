@@ -65,12 +65,12 @@ fi
 
 IFS='|' read -r MAP_NAME SX SY STHETA DESC <<< "$SELECTED"
 
-python3 - "$SIM_YAML" "$MAP_NAME" "$SX" "$SY" "$STHETA" << 'EOF'
+python3 - "$SIM_YAML" "$REPO_DIR/src/f1tenth_gym_ros/maps/$MAP_NAME" "$SX" "$SY" "$STHETA" << 'EOF'
 import sys, re
-yaml_path, map_name, sx, sy, stheta = sys.argv[1:6]
+yaml_path, full_map_path, sx, sy, stheta = sys.argv[1:6]
 with open(yaml_path, "r") as f:
     txt = f.read()
-txt = re.sub(r"map_path:.*", f"map_path: '{map_name}'", txt)
+txt = re.sub(r"map_path:.*", f"map_path: '{full_map_path}'", txt)
 txt = re.sub(r"^\s*sx:.*$", f"    sx: {sx}", txt, flags=re.MULTILINE)
 txt = re.sub(r"^\s*sy:.*$", f"    sy: {sy}", txt, flags=re.MULTILINE)
 txt = re.sub(r"^\s*stheta:.*$", f"    stheta: {stheta}", txt, flags=re.MULTILINE)
@@ -78,7 +78,7 @@ with open(yaml_path, "w") as f:
     f.write(txt)
 EOF
 
-echo "✅ Updated sim.yaml -> Map: $MAP_NAME | Pose: (sx=$SX, sy=$SY, stheta=$STHETA)"
+echo "✅ Updated sim.yaml -> Map: $REPO_DIR/src/f1tenth_gym_ros/maps/$MAP_NAME | Pose: (sx=$SX, sy=$SY, stheta=$STHETA)"
 
 # Rebuild f1tenth_gym_ros so installed config/sim.yaml is updated
 ROS_DISTRO="${ROS_DISTRO:-humble}"
