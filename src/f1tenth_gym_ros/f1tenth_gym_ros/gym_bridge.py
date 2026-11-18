@@ -34,6 +34,8 @@ from geometry_msgs.msg import Quaternion
 from ackermann_msgs.msg import AckermannDriveStamped
 from tf2_ros import TransformBroadcaster
 
+import os
+from ament_index_python.packages import get_package_share_directory
 import gym
 import numpy as np
 from transforms3d import euler
@@ -82,9 +84,16 @@ class GymBridge(Node):
         elif type(num_agents) != int:
             raise ValueError('num_agents should be an int.')
 
-        # env backend
+        # env backend (auto-resolve portable map names or foreign user paths)
+        raw_map_path = os.path.expanduser(self.get_parameter('map_path').value)
+        if not os.path.exists(raw_map_path + '.yaml'):
+            map_name = os.path.basename(raw_map_path.rstrip('/'))
+            share_path = os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'maps', map_name)
+            if os.path.exists(share_path + '.yaml'):
+                raw_map_path = share_path
+
         self.env = gym.make('f110_gym:f110-v0',
-                            map=self.get_parameter('map_path').value,
+                            map=raw_map_path,
                             map_ext=self.get_parameter('map_img_ext').value,
                             num_agents=num_agents)
 

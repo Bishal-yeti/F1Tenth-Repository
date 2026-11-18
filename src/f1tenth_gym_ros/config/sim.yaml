@@ -41,8 +41,9 @@ bridge:
     scan_fov: 4.7
     scan_beams: 1080
 
-    # map parameters
-    map_path: '/home/yeti/F1Tenth-Repository/src/f1tenth_gym_ros/maps/Sakhir_map'
+    # map parameters (portable map name — automatically resolved for ANY Linux username!)
+    # Use `./switch_map.sh` to switch between all 12 bundled maps automatically.
+    map_path: 'Sakhir_map'
     map_img_ext: '.png'
 
     # opponent parameters

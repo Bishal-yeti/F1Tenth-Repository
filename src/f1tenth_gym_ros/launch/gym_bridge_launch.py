@@ -27,6 +27,18 @@ from ament_index_python.packages import get_package_share_directory
 import os
 import yaml
 
+def resolve_map_path(raw_map_path: str) -> str:
+    """Resolve map_path portably across any username or workspace location."""
+    expanded = os.path.expanduser(raw_map_path)
+    if os.path.exists(expanded + '.yaml'):
+        return expanded
+    map_name = os.path.basename(expanded.rstrip('/'))
+    share_path = os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'maps', map_name)
+    if os.path.exists(share_path + '.yaml'):
+        return share_path
+    return expanded
+
+
 def generate_launch_description():
     ld = LaunchDescription()
     config = os.path.join(
@@ -37,12 +49,13 @@ def generate_launch_description():
     config_dict = yaml.safe_load(open(config, 'r'))
     has_opp = config_dict['bridge']['ros__parameters']['num_agent'] > 1
     teleop = config_dict['bridge']['ros__parameters']['kb_teleop']
+    resolved_map_path = resolve_map_path(config_dict['bridge']['ros__parameters']['map_path'])
 
     bridge_node = Node(
         package='f1tenth_gym_ros',
         executable='gym_bridge',
         name='bridge',
-        parameters=[config]
+        parameters=[config, {'map_path': resolved_map_path}]
     )
     rviz_node = Node(
         package='rviz2',
@@ -53,7 +66,7 @@ def generate_launch_description():
     map_server_node = Node(
         package='nav2_map_server',
         executable='map_server',
-        parameters=[{'yaml_filename': config_dict['bridge']['ros__parameters']['map_path'] + '.yaml'},
+        parameters=[{'yaml_filename': resolved_map_path + '.yaml'},
                     {'topic': 'map'},
                     {'frame_id': 'map'},
                     {'output': 'screen'},

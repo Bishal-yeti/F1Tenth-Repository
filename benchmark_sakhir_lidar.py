@@ -6,7 +6,9 @@ from controllers.lidar_race_core import RealLidarRaceCore, PACE_TRIMS
 with open("src/f1tenth_gym_ros/config/sim.yaml") as f:
     conf = yaml.safe_load(f)["bridge"]["ros__parameters"]
 
-map_path = conf["map_path"]
+map_path = os.path.expanduser(conf["map_path"])
+if not os.path.exists(map_path + ".yaml"):
+    map_path = os.path.abspath(os.path.join("src/f1tenth_gym_ros/maps", os.path.basename(map_path.rstrip("/"))))
 map_ext = conf["map_img_ext"]
 sx, sy, stheta = float(conf["sx"]), float(conf["sy"]), float(conf["stheta"])
 print(f"Map: {map_path}, Start: ({sx}, {sy}, {stheta})")
