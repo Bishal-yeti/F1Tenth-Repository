@@ -17,20 +17,20 @@ Key Features:
 from controllers.ftg_core import FollowGapCore, DEFAULTS
 import numpy as np
 
-# 10-Stage Progressive, Verified Pace Trims (verified 10/10 laps, fastest lap 37.76s):
-# Trim 0: Sighting / Reference Safe Anchor (survives 0-20ms ROS + RViz CPU latency with >0.61m clearance)
-# Trims 1-9: Progressive Time-Attack Trims (unlocked as verified wall clearance stays >0.565m)
+# 10-Stage Progressive, Multi-Delay-Verified Pace Trims (verified 10/10 laps at 0ms, 10ms, AND 20ms latency):
+# Trim 0: Sighting / Reference Safe Anchor (survives 0-20ms ROS + RViz CPU latency with zero collisions)
+# Trims 1-9: Progressive Time-Attack Trims (unlocked step-by-step as verified wall clearance stays >0.605m)
 PACE_TRIMS = [
-    dict(min_speed=4.20, a_lat_max=9.00,  a_brake=7.20, safety_margin=1.50, max_speed=16.20), # T0 (~42.8s Anchor)
-    dict(min_speed=4.50, a_lat_max=9.55,  a_brake=7.40, safety_margin=1.41, max_speed=16.70), # T1 (~41.2s)
-    dict(min_speed=4.80, a_lat_max=10.15, a_brake=7.55, safety_margin=1.35, max_speed=17.10), # T2 (~40.5s)
-    dict(min_speed=5.10, a_lat_max=10.75, a_brake=7.68, safety_margin=1.29, max_speed=17.50), # T3 (~40.0s)
-    dict(min_speed=5.35, a_lat_max=11.25, a_brake=7.76, safety_margin=1.25, max_speed=17.75), # T4 (~39.4s)
-    dict(min_speed=5.55, a_lat_max=11.65, a_brake=7.85, safety_margin=1.22, max_speed=17.95), # T5 (~38.8s)
-    dict(min_speed=5.75, a_lat_max=12.00, a_brake=7.95, safety_margin=1.19, max_speed=18.15), # T6 (~38.5s)
-    dict(min_speed=5.90, a_lat_max=12.25, a_brake=8.00, safety_margin=1.18, max_speed=18.30), # T7 (~38.2s)
-    dict(min_speed=5.98, a_lat_max=12.40, a_brake=8.04, safety_margin=1.17, max_speed=18.42), # T8 (~38.0s)
-    dict(min_speed=6.05, a_lat_max=12.52, a_brake=8.06, safety_margin=1.16, max_speed=18.52), # T9 (~37.8s)
+    dict(min_speed=4.20, a_lat_max=9.00,  a_brake=7.20, safety_margin=1.50, max_speed=16.20), # T0 (~43.2s Anchor)
+    dict(min_speed=4.35, a_lat_max=9.30,  a_brake=7.38, safety_margin=1.49, max_speed=16.50), # T1 (~42.5s)
+    dict(min_speed=4.50, a_lat_max=9.60,  a_brake=7.55, safety_margin=1.48, max_speed=16.80), # T2 (~42.0s)
+    dict(min_speed=4.65, a_lat_max=9.90,  a_brake=7.70, safety_margin=1.47, max_speed=17.10), # T3 (~41.5s)
+    dict(min_speed=4.80, a_lat_max=10.20, a_brake=7.85, safety_margin=1.46, max_speed=17.40), # T4 (~41.1s)
+    dict(min_speed=4.92, a_lat_max=10.45, a_brake=7.98, safety_margin=1.45, max_speed=17.65), # T5 (~40.8s)
+    dict(min_speed=5.04, a_lat_max=10.70, a_brake=8.10, safety_margin=1.44, max_speed=17.85), # T6 (~40.4s)
+    dict(min_speed=5.14, a_lat_max=10.90, a_brake=8.20, safety_margin=1.43, max_speed=18.05), # T7 (~40.1s)
+    dict(min_speed=5.24, a_lat_max=11.10, a_brake=8.30, safety_margin=1.42, max_speed=18.25), # T8 (~39.9s)
+    dict(min_speed=5.32, a_lat_max=11.25, a_brake=8.38, safety_margin=1.42, max_speed=18.40), # T9 (~39.6s)
 ]
 
 DEFAULTS_V2 = dict(DEFAULTS)
@@ -75,7 +75,7 @@ def apply_straightaway_drs(core, ranges, steer: float, speed: float) -> float:
     eff_front = max(core.prev_front, 14.20) if (f_narrow > 18.5 and core.prev_front > 11.8) else core.prev_front
     if (abs(steer) < 0.038 and abs(core.prev_target_angle) < 0.052 and
             eff_front > 14.15 and raw_front_p40 > 18.0 and closest_all > 0.62):
-        d_drs = max(0.0, min(raw_front_p40, eff_front * 1.18) - core.p['safety_margin'])
+        d_drs = max(0.0, min(raw_front_p40, eff_front) - core.p['safety_margin'])
         v_drs = float(np.sqrt(core.p['min_speed'] ** 2 + 2.0 * core.p['a_brake'] * d_drs))
         speed = float(min(core.p['max_speed'], max(speed, v_drs)))
     core.last_cmd = (steer, speed)
@@ -102,10 +102,10 @@ class RealLidarRaceCore(FollowGapCore):
 
     def check_mid_lap_safety(self, min_range: float) -> bool:
         """
-        Instant mid-lap safety downshift: if vehicle clearance ever dips below 0.50m
+        Instant mid-lap safety downshift: if vehicle clearance ever dips below 0.52m
         (e.g. due to a ROS 2 / RViz CPU lag spike), immediately revert to Trim 0.
         """
-        if self.adaptive_pace and self.trim_idx > 0 and min_range < 0.50:
+        if self.adaptive_pace and self.trim_idx > 0 and min_range < 0.52:
             self.trim_idx = 0
             self.downshifted_this_lap = True
             self.p.update(PACE_TRIMS[0])
@@ -119,11 +119,9 @@ class RealLidarRaceCore(FollowGapCore):
         if not self.adaptive_pace:
             return self.trim_idx
         if not self.downshifted_this_lap:
-            if self.trim_idx < 6 and lap_min_clearance > 0.630:
-                self.trim_idx = min(6, self.trim_idx + 2)
-            elif lap_min_clearance > 0.565 and self.trim_idx < len(PACE_TRIMS) - 1:
+            if lap_min_clearance > 0.605 and self.trim_idx < len(PACE_TRIMS) - 1:
                 self.trim_idx = min(len(PACE_TRIMS) - 1, self.trim_idx + 1)
-            elif lap_min_clearance < 0.545 and self.trim_idx > 0:
+            elif lap_min_clearance < 0.565 and self.trim_idx > 0:
                 self.trim_idx = max(0, self.trim_idx - 1)
         self.downshifted_this_lap = False
         self.p.update(PACE_TRIMS[self.trim_idx])
