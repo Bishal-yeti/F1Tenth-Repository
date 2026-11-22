@@ -139,13 +139,18 @@ class FollowGapCore:
         else:
             score = lengths
 
-        # Directional consistency: when actively cornering, penalize gaps on the opposite
-        # hemisphere that would cause violent pendulum oscillations or bite dead-end runoff bait
-        if abs(self.prev_steer) > 0.08 and len(starts) > 1:
+        # Forward-progress alignment: prioritize gaps pointing along the forward vehicle vector
+        # and penalize extreme peripheral angles that point sideways/backwards
+        if len(starts) > 1:
             gap_angles = np.array([self.angles[(s + e) // 2] for s, e in zip(starts, ends)])
-            delta_angles = np.abs(gap_angles - self.prev_target_angle)
-            align_factors = np.maximum(0.25, np.cos(delta_angles / 2.0)) ** 2
-            score = score * align_factors
+            fwd_factors = np.maximum(0.25, np.cos(gap_angles / 1.5)) ** 2
+            score = score * fwd_factors
+
+            # Directional consistency: when actively cornering, penalize sudden hemisphere flips
+            if abs(self.prev_steer) > 0.08:
+                delta_angles = np.abs(gap_angles - self.prev_target_angle)
+                align_factors = np.maximum(0.20, np.cos(delta_angles / 2.0)) ** 2
+                score = score * align_factors
 
         k = int(np.argmax(score))
         return int(starts[k]), int(ends[k])
@@ -200,16 +205,20 @@ class FollowGapCore:
             best = int(np.argmax(sm))
         else:
             bub = p['bubble_radius'] if not narrow else min(p['bubble_radius'], 0.30)
-            nb = int(np.ceil(np.arctan2(bub, closest) / self.angle_inc))
+            # Dynamic bubble clamping: limit maximum bubble half-angle to 0.48 rad (~27.5°).
+            # When closest is small (<0.35m), arctan2(bub, closest) would grow to >65°,
+            # blinding the entire 140° forward FOV and forcing a 180° reverse U-turn.
+            bub_angle = min(np.arctan2(bub, max(closest, 0.35)), 0.48)
+            nb = int(np.ceil(bub_angle / self.angle_inc))
             fov[max(self.min_idx, ci - nb):min(self.max_idx, ci + nb + 1)] = 0.0
             s, e = self.find_max_gap(fov)
             best = self.find_best_point(s, e, fov)
 
         alpha = float(self.angles[best])
-        # Hold turn direction if safety bubble momentarily clips FOV edge in tight hairpin
-        if abs(alpha - self.prev_target_angle) > 1.35 and abs(self.prev_steer) > 0.20 and closest < 1.15:
-            alpha = self.prev_target_angle
-        elif abs(alpha - self.prev_target_angle) > 1.30 and abs(self.prev_steer) > 0.15:
+
+        # Anti-U-Turn Target Angle Slew Limiter:
+        # Prevent instantaneous flip across hemispheres by > 0.40 rad (22.9°) in a single scan.
+        if abs(alpha - self.prev_target_angle) > 0.40:
             alpha = float(np.clip(alpha, self.prev_target_angle - 0.40, self.prev_target_angle + 0.40))
 
         # ----- steering law

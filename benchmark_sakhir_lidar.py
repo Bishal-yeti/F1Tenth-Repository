@@ -56,7 +56,7 @@ for step in range(50000): # ~500s (up to 12 laps)
         break
 
     yaw_diff = abs(np.arctan2(np.sin(pth - stheta), np.cos(pth - stheta)))
-    if cur_lap_dist > 400.0 and d_to_start < 2.5 and yaw_diff < 1.0:
+    if cur_lap_dist > 400.0 and d_to_start < 5.0 and yaw_diff < 1.3:
         used_trim = core.trim_label
         gain_vs_lap1 = (laps[0][1] - cur_lap_time) if laps else 0.0
         gain_vs_prev = (laps[-1][1] - cur_lap_time) if laps else 0.0
