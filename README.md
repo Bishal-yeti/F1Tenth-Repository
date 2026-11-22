@@ -13,43 +13,116 @@
 
 ---
 
-## ⚡ 60-Second Beginner Quick-Start (Zero Searching, 1-Click Launch!)
+## ⌨️ All Commands in One Place — Master Sorted Command Cheatsheet
 
-> **No manual `sim.yaml` path editing required!** All **12 official tracks** are pre-bundled, map paths resolve dynamically for any username, and you can launch the complete race suite in **1 single command**.
+Every command used across the entire project—from initial clone and automated setup to launching, switching tracks, benchmarking, and inspecting ROS 2 topics—is sorted below in execution order:
 
+### 📋 Quick-Reference Command Table (Sorted by Category)
+
+| Step / Category | Shortcut Command (`./run_race.sh`) | Equivalent Native ROS 2 / Linux Command | Description |
+| :--- | :--- | :--- | :--- |
+| **1. Clone & Enter Repo** | `git clone https://github.com/Bishal-yeti/F1Tenth-Repository.git && cd F1Tenth-Repository` | *(Same)* | Downloads repository with all 12 maps & 3 controllers |
+| **2. Automated Install & Build** | `./setup_f1tenth.sh` | `source /opt/ros/humble/setup.bash && colcon build --symlink-install` | Auto-installs ROS 2, `f1tenth_gym`, configures `sim.yaml`, patches WSL2 RViz shader & builds |
+| **3. All-in-One Race (1 Terminal)** | **`./run_race.sh race`** *(or `./run_race.sh`)* | `ros2 launch f1tenth_gym_ros race_launch.py controller:=lidar` | **Launches Simulator + RViz2 + Adaptive LiDAR AI + Live GUI Window in 1 command** |
+| **3b. All-in-One (Qualifier AI)** | — | `ros2 launch f1tenth_gym_ros race_launch.py controller:=qualifier` | Launches Simulator + RViz2 + Fast-Start Qualifier AI (`Q-T6` $\rightarrow$ `Q-T8`) in 1 command |
+| **3c. All-in-One (Endurance AI)** | — | `ros2 launch f1tenth_gym_ros race_launch.py controller:=gap` | Launches Simulator + RViz2 + Version 1 Endurance AI in 1 command |
+| **4. Terminal 1: Simulator Only** | `./run_race.sh sim` | `ros2 launch f1tenth_gym_ros gym_bridge_launch.py` | Launches 100 Hz physics simulator + map server + RViz2 (waits for Terminal 2 AI) |
+| **5a. Terminal 2: Stable 10-Lap AI** | `./run_race.sh lidar` | `ros2 run controllers lidar_race_node` | Runs Version 2 10-Stage Adaptive LiDAR AI (`T0` $\rightarrow$ `T9`) + Live GUI Window |
+| **5b. Terminal 2: Fast Qualifier AI** | `./run_race.sh qualifier` | `ros2 run controllers qualifier_node` | Runs Version 3 Fast-Start Qualifier AI (`Q-T6` $\rightarrow$ `Q-T8`) + Live GUI Window |
+| **5c. Terminal 2: Qualifier 4-Lap Sprint**| — | `ros2 run controllers qualifier_node --ros-args -p target_laps:=4` | Runs a 4-lap qualifying sprint and performs active steered cooldown stop after Lap 4 |
+| **5d. Terminal 2: Endurance AI (V1)** | `./run_race.sh gap` | `ros2 run controllers gap_node` | Runs Version 1 constant-trim Endurance Champion (`v1.0-stable`) |
+| **6. Switch Track (12 Circuits)** | `./run_race.sh map` *(or `./switch_map.sh`)* | `./switch_map.sh Sakhir_map` *(or `Zandvoort_map`, `Catalunya_map`, etc.)* | Switches active map in `sim.yaml`, sets verified safe start pose `(sx, sy, stheta)` & rebuilds |
+| **7. Headless 10-Lap Benchmark** | `./run_race.sh bench` | `python3 benchmark_sakhir_lidar.py` | Runs 10-lap RK4 physics benchmark in ~15s without RViz2 and writes CSV logs |
+| **8. View Tuning & Reflection Guide** | `./run_race.sh guide` | `less GUIDE_RUN_REFLECT_IMPROVE.md` | Opens the step-by-step Run, Reflect & Improve tuning manual in terminal |
+| **9. Monitor Live ROS 2 Topics** | — | `ros2 topic echo /lap_count` \| `/lap_time` \| `/best_lap_time` \| `/race_telemetry` | Streams live lap counter, lap timer, fastest lap, or summary telemetry in terminal |
+| **10. Manual Keyboard Driving** | — | `ros2 run teleop_twist_keyboard teleop_twist_keyboard` | Manual keyboard control (`i`=forward, `u`=left, `o`=right, `k`=stop) |
+
+---
+
+### 🚀 Copy-Paste Command Blocks (Sorted by Workflow)
+
+#### A. First-Time Setup & Build (Run Once on Any PC)
 ```bash
-# 1. Clone the repository
 git clone https://github.com/Bishal-yeti/F1Tenth-Repository.git
 cd F1Tenth-Repository
-
-# 2. Run the automated installer (installs ROS 2, f1tenth_gym, Python deps & builds workspace)
 ./setup_f1tenth.sh
-
-# 3. Launch the Race! Choose Method A (1 Command) or Method B (2 Terminals):
 ```
 
-### 🏆 Method A: The 1-Command All-in-One Race (Recommended!)
-Launches the Simulator, RViz2 3D HUD, Live GUI Speedometer, and Autonomous AI Controller **together in one command**:
+#### B. Workflow 1 — 1-Command All-in-One Launch (Simulator + RViz2 + AI Together)
 ```bash
+# Option 1: Interactive menu or 1-click Stable 10-Lap Adaptive AI (Default)
 ./run_race.sh race
-# (Or just run './run_race.sh' and press Enter — Option 1 is the default!)
+
+# Option 2: Direct ROS 2 All-in-One Launch (choose controller:=lidar | qualifier | gap)
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 launch f1tenth_gym_ros race_launch.py controller:=lidar
+ros2 launch f1tenth_gym_ros race_launch.py controller:=qualifier
+ros2 launch f1tenth_gym_ros race_launch.py controller:=gap
 ```
 
-### 🖥️ Method B: Two-Terminal Standard ROS 2 Workflow
-If you prefer running the simulator and AI controller in separate windows:
+#### C. Workflow 2 — Two-Terminal Standard ROS 2 Launch (Simulator & AI in Separate Windows)
 ```bash
-# Terminal 1 — Launch Simulator + RViz2 (opens map & prepares start line)
+# ── TERMINAL 1: Launch Simulator + RViz2 ──────────────────────────────────────
 ./run_race.sh sim
+# (Native ROS 2 equivalent: source /opt/ros/humble/setup.bash && source install/setup.bash && ros2 launch f1tenth_gym_ros gym_bridge_launch.py)
 
-# Terminal 2 — Launch Autonomous LiDAR Controller (car immediately starts racing!)
-./run_race.sh lidar       # Stable 10-Lap Adaptive AI (Recommended)
-# OR: ./run_race.sh qualifier   (Fast-Start Qualifier AI)
-# OR: ./run_race.sh gap         (Version 1 Endurance AI)
-# OR: ./switch_map.sh           (Switch between all 12 official circuits)
+# ── TERMINAL 2: Launch Your Chosen Autonomous Controller ─────────────────────
+./run_race.sh lidar       # Version 2: Stable 10-Stage Adaptive LiDAR AI (Recommended)
+./run_race.sh qualifier   # Version 3: Fast-Start Qualifier Time-Attack AI
+./run_race.sh gap         # Version 1: Constant-Trim Endurance AI
+
+# (Native ROS 2 equivalents for Terminal 2):
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 run controllers lidar_race_node
+ros2 run controllers qualifier_node
+ros2 run controllers qualifier_node --ros-args -p target_laps:=4
+ros2 run controllers gap_node
+```
+
+#### D. Track Switching Commands (All 12 Bundled Official F1Tenth Circuits)
+```bash
+./switch_map.sh                    # Open interactive 12-track selector menu
+./switch_map.sh Sakhir_map         # 1. Bahrain Sakhir GP (Default Competition Track)
+./switch_map.sh Catalunya_map      # 2. Circuit de Barcelona-Catalunya
+./switch_map.sh Sepang_map         # 3. Sepang International Circuit
+./switch_map.sh Zandvoort_map      # 4. Circuit Zandvoort
+./switch_map.sh BrandsHatch_map    # 5. Brands Hatch Circuit
+./switch_map.sh Budapest_map       # 6. Hungaroring (Budapest)
+./switch_map.sh Oschersleben_map   # 7. Motorsport Arena Oschersleben
+./switch_map.sh SaoPaulo_map       # 8. Interlagos (São Paulo)
+./switch_map.sh Spielberg_map      # 9. Red Bull Ring (Spielberg)
+./switch_map.sh Spielberg_obs_map  # 10. Spielberg with Static Obstacles
+./switch_map.sh levine             # 11. UPenn Levine Hall
+./switch_map.sh levineB            # 12. UPenn Levine Hall Variant B
+```
+
+#### E. Benchmarking, Live Telemetry & Manual Recompilation Commands
+```bash
+# Run headless 10-lap physics verification benchmark (~15 seconds, no GUI needed)
+./run_race.sh bench                # or: python3 benchmark_sakhir_lidar.py
+
+# Inspect live ROS 2 telemetry topics while a race is running
+source /opt/ros/humble/setup.bash && source install/setup.bash
+ros2 topic list
+ros2 topic echo /lap_count
+ros2 topic echo /lap_time
+ros2 topic echo /best_lap_time
+ros2 topic echo /race_telemetry
+
+# View completed CSV telemetry logs in terminal
+column -t -s, lap_times_sakhir_v2_fast.csv
+column -t -s, lap_time_gains_sakhir.csv
+column -t -s, lap_times_sakhir_qualifier.csv
+
+# Manual clean workspace rebuild after editing code
+source /opt/ros/humble/setup.bash
+rm -rf build/ install/ log/
+colcon build --symlink-install
+source install/setup.bash
 ```
 
 > 📖 **Looking to tune parameters or understand telemetry?**
-> Read the complete [**Master Guide to Run, Reflect, and Improve (GUIDE_RUN_REFLECT_IMPROVE.md)**](GUIDE_RUN_REFLECT_IMPROVE.md) for full telemetry explanations, CSV columns, and the Symptom $\rightarrow$ Diagnosis $\rightarrow$ Fix tuning decision matrix!
+> Read the complete [**Master Guide to Run, Reflect, and Improve (GUIDE_RUN_REFLECT_IMPROVE.md)**](GUIDE_RUN_REFLECT_IMPROVE.md) (or run `./run_race.sh guide`) for full telemetry explanations, CSV columns, and the Symptom $\rightarrow$ Diagnosis $\rightarrow$ Fix tuning decision matrix!
 
 ---
 

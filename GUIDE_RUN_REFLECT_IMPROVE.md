@@ -4,6 +4,28 @@ Welcome to the **Zero-Search, Step-by-Step Engineering Guide** for the F1TENTH A
 
 ---
 
+## ⌨️ All Commands in One Place — Master Sorted Command Cheatsheet
+
+| Step / Category | Shortcut Command (`./run_race.sh`) | Equivalent Native ROS 2 / Linux Command | Description |
+| :--- | :--- | :--- | :--- |
+| **1. Clone & Enter Repo** | `git clone https://github.com/Bishal-yeti/F1Tenth-Repository.git && cd F1Tenth-Repository` | *(Same)* | Downloads repository with all 12 maps & 3 controllers |
+| **2. Automated Install & Build** | `./setup_f1tenth.sh` | `source /opt/ros/humble/setup.bash && colcon build --symlink-install` | Auto-installs ROS 2, `f1tenth_gym`, configures `sim.yaml`, patches WSL2 RViz shader & builds |
+| **3. All-in-One Race (1 Terminal)** | **`./run_race.sh race`** *(or `./run_race.sh`)* | `ros2 launch f1tenth_gym_ros race_launch.py controller:=lidar` | **Launches Simulator + RViz2 + Adaptive LiDAR AI + Live GUI Window in 1 command** |
+| **3b. All-in-One (Qualifier AI)** | — | `ros2 launch f1tenth_gym_ros race_launch.py controller:=qualifier` | Launches Simulator + RViz2 + Fast-Start Qualifier AI (`Q-T6` $\rightarrow$ `Q-T8`) in 1 command |
+| **3c. All-in-One (Endurance AI)** | — | `ros2 launch f1tenth_gym_ros race_launch.py controller:=gap` | Launches Simulator + RViz2 + Version 1 Endurance AI in 1 command |
+| **4. Terminal 1: Simulator Only** | `./run_race.sh sim` | `ros2 launch f1tenth_gym_ros gym_bridge_launch.py` | Launches 100 Hz physics simulator + map server + RViz2 (waits for Terminal 2 AI) |
+| **5a. Terminal 2: Stable 10-Lap AI** | `./run_race.sh lidar` | `ros2 run controllers lidar_race_node` | Runs Version 2 10-Stage Adaptive LiDAR AI (`T0` $\rightarrow$ `T9`) + Live GUI Window |
+| **5b. Terminal 2: Fast Qualifier AI** | `./run_race.sh qualifier` | `ros2 run controllers qualifier_node` | Runs Version 3 Fast-Start Qualifier AI (`Q-T6` $\rightarrow$ `Q-T8`) + Live GUI Window |
+| **5c. Terminal 2: Qualifier 4-Lap Sprint**| — | `ros2 run controllers qualifier_node --ros-args -p target_laps:=4` | Runs a 4-lap qualifying sprint and performs active steered cooldown stop after Lap 4 |
+| **5d. Terminal 2: Endurance AI (V1)** | `./run_race.sh gap` | `ros2 run controllers gap_node` | Runs Version 1 constant-trim Endurance Champion (`v1.0-stable`) |
+| **6. Switch Track (12 Circuits)** | `./run_race.sh map` *(or `./switch_map.sh`)* | `./switch_map.sh Sakhir_map` *(or `Zandvoort_map`, `Catalunya_map`, etc.)* | Switches active map in `sim.yaml`, sets verified safe start pose `(sx, sy, stheta)` & rebuilds |
+| **7. Headless 10-Lap Benchmark** | `./run_race.sh bench` | `python3 benchmark_sakhir_lidar.py` | Runs 10-lap RK4 physics benchmark in ~15s without RViz2 and writes CSV logs |
+| **8. View Tuning & Reflection Guide** | `./run_race.sh guide` | `less GUIDE_RUN_REFLECT_IMPROVE.md` | Opens this Run, Reflect & Improve tuning manual in terminal |
+| **9. Monitor Live ROS 2 Topics** | — | `ros2 topic echo /lap_count` \| `/lap_time` \| `/best_lap_time` \| `/race_telemetry` | Streams live lap counter, lap timer, fastest lap, or summary telemetry in terminal |
+| **10. Manual Keyboard Driving** | — | `ros2 run teleop_twist_keyboard teleop_twist_keyboard` | Manual keyboard control (`i`=forward, `u`=left, `o`=right, `k`=stop) |
+
+---
+
 ## 📑 Table of Contents
 1. [⚡ Part 1: Step-by-Step Running Guide (Zero to Racing)](#1-step-by-step-running-guide-zero-to-racing)
    - [A. Fresh PC / Windows WSL2 1-Command Setup](#a-fresh-pc--windows-wsl2-1-command-setup)
