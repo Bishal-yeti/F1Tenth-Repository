@@ -133,6 +133,27 @@ if dpkg -s python3-coverage >/dev/null 2>&1; then
   sudo apt purge -y python3-coverage
 fi
 
+# Fix Mesa/WSL2 RViz Map shader linking bug (active samplers with different type)
+RVIZ_MAP_FRAG="/opt/ros/$ROS_DISTRO/share/rviz_rendering/ogre_media/materials/glsl120/indexed_8bit_image.frag"
+if [ -f "$RVIZ_MAP_FRAG" ] && ! grep -q "GL_ARB_shading_language_420pack" "$RVIZ_MAP_FRAG"; then
+  echo "      Applying Mesa/WSL2 RViz2 shader patch for Map display..."
+  sudo bash -c "cat << 'EOF' > \"$RVIZ_MAP_FRAG\"
+#version 120
+#extension GL_ARB_shading_language_420pack : require
+
+varying vec2 UV;
+layout(binding = 0) uniform sampler2D eight_bit_image;
+layout(binding = 1) uniform sampler1D palette;
+uniform float alpha;
+
+void main()
+{
+  vec4 color = texture1D( palette, 0.999 * texture2D( eight_bit_image, UV ).x );
+  gl_FragColor = vec4( color.rgb, color.a * alpha );
+}
+EOF"
+fi
+
 # 6. Clean build the ROS 2 workspace (f1tenth_gym_ros + controllers + path_planning + 12 maps)
 echo "[5/6] Compiling ROS 2 workspace (f1tenth_gym_ros + controllers + all 12 maps)..."
 # shellcheck disable=SC1090
