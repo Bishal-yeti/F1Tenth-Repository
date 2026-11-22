@@ -108,6 +108,13 @@ EOF"
       [ -d "$(dirname "$inst_lf")" ] && cp -f "$src_lf" "$inst_lf" 2>/dev/null || true
     fi
   done
+  # 4. Sync updated Python nodes (controllers & gym_bridge) to build/ if build/ uses copied files
+  if [ -d "$REPO_DIR/build/controllers/controllers" ]; then
+    cp -f "$REPO_DIR/src/controllers/controllers/"*.py "$REPO_DIR/build/controllers/controllers/" 2>/dev/null || true
+  fi
+  if [ -d "$REPO_DIR/build/f1tenth_gym_ros/f1tenth_gym_ros" ]; then
+    cp -f "$REPO_DIR/src/f1tenth_gym_ros/f1tenth_gym_ros/"*.py "$REPO_DIR/build/f1tenth_gym_ros/f1tenth_gym_ros/" 2>/dev/null || true
+  fi
 }
 
 ACTION="$1"
@@ -185,6 +192,7 @@ case "$ACTION" in
     ;;
 
   lidar)
+    ensure_rviz_map_ready
     echo "=============================================================================="
     echo "  🏎️  LAUNCHING STABLE 10-STAGE ADAPTIVE LIDAR AI CONTROLLER (TERMINAL 2)"
     echo "=============================================================================="
@@ -195,6 +203,7 @@ case "$ACTION" in
     ;;
 
   qualifier)
+    ensure_rviz_map_ready
     echo "=============================================================================="
     echo "  ⚡ LAUNCHING FAST-START QUALIFIER TIME-ATTACK CONTROLLER (TERMINAL 2)"
     echo "=============================================================================="
@@ -205,6 +214,7 @@ case "$ACTION" in
     ;;
 
   gap)
+    ensure_rviz_map_ready
     echo "=============================================================================="
     echo "  🛡️  LAUNCHING VERSION 1 ENDURANCE CENTERLINE CONTROLLER (TERMINAL 2)"
     echo "=============================================================================="

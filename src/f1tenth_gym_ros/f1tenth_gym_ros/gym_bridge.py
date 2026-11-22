@@ -142,10 +142,10 @@ class GymBridge(Node):
             self.obs, _ , self.done, _ = self.env.reset(np.array([[sx, sy, stheta]]))
             self.ego_scan = list(self.obs['scans'][0])
 
-        # sim physical step timer
+        # sim physical step timer (100 Hz)
         self.drive_timer = self.create_timer(0.01, self.drive_timer_callback)
-        # topic publishing timer
-        self.timer = self.create_timer(0.004, self.timer_callback)
+        # topic publishing timer (100 Hz, synchronized 1:1 with physics step to prevent RViz2 CPU overload)
+        self.timer = self.create_timer(0.01, self.timer_callback)
 
         # transform broadcaster
         self.br = TransformBroadcaster(self)
@@ -161,12 +161,12 @@ class GymBridge(Node):
             self.opp_ego_odom_pub = self.create_publisher(Odometry, opp_ego_odom_topic, 10)
             self.opp_drive_published = False
 
-        # subscribers
+        # subscribers (queue depth 1 for low-latency control)
         self.ego_drive_sub = self.create_subscription(
             AckermannDriveStamped,
             ego_drive_topic,
             self.drive_callback,
-            10)
+            1)
         self.ego_reset_sub = self.create_subscription(
             PoseWithCovarianceStamped,
             '/initialpose',
