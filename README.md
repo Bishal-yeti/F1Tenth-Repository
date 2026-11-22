@@ -13,27 +13,43 @@
 
 ---
 
-## ⚡ 60-Second Beginner Quick-Start (Zero Manual File Editing!)
+## ⚡ 60-Second Beginner Quick-Start (Zero Searching, 1-Click Launch!)
 
-> **No manual `sim.yaml` path editing required!** Unlike the stock F1Tenth repository, our launch bridge **automatically resolves map paths for any Linux username**, and all **12 official tracks** are already bundled inside this repo.
+> **No manual `sim.yaml` path editing required!** All **12 official tracks** are pre-bundled, map paths resolve dynamically for any username, and you can launch the complete race suite in **1 single command**.
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/Bishal-yeti/F1Tenth-Repository.git
 cd F1Tenth-Repository
 
-# 2. Run the automated setup script (detects Ubuntu/ROS 2, installs missing deps, builds all 12 maps)
+# 2. Run the automated installer (installs ROS 2, f1tenth_gym, Python deps & builds workspace)
 ./setup_f1tenth.sh
 
-# 3. Terminal 1 — Launch the F1Tenth Simulator + RViz2 (with 3D HUD pre-configured)
+# 3. Launch the Race! Choose Method A (1 Command) or Method B (2 Terminals):
+```
+
+### 🏆 Method A: The 1-Command All-in-One Race (Recommended!)
+Launches the Simulator, RViz2 3D HUD, Live GUI Speedometer, and Autonomous AI Controller **together in one command**:
+```bash
+./run_race.sh race
+# (Or just run './run_race.sh' and press Enter — Option 1 is the default!)
+```
+
+### 🖥️ Method B: Two-Terminal Standard ROS 2 Workflow
+If you prefer running the simulator and AI controller in separate windows:
+```bash
+# Terminal 1 — Launch Simulator + RViz2 (opens map & prepares start line)
 ./run_race.sh sim
 
-# 4. Terminal 2 — Launch the Autonomous LiDAR Controller (opens Live Speedometer & Lap-Time Window!)
-./run_race.sh lidar       # Stable 10-Lap Adaptive AI (recommended)
+# Terminal 2 — Launch Autonomous LiDAR Controller (car immediately starts racing!)
+./run_race.sh lidar       # Stable 10-Lap Adaptive AI (Recommended)
 # OR: ./run_race.sh qualifier   (Fast-Start Qualifier AI)
 # OR: ./run_race.sh gap         (Version 1 Endurance AI)
-# OR: ./switch_map.sh           (Switch between all 12 official circuits with 1 click!)
+# OR: ./switch_map.sh           (Switch between all 12 official circuits)
 ```
+
+> 📖 **Looking to tune parameters or understand telemetry?**
+> Read the complete [**Master Guide to Run, Reflect, and Improve (GUIDE_RUN_REFLECT_IMPROVE.md)**](GUIDE_RUN_REFLECT_IMPROVE.md) for full telemetry explanations, CSV columns, and the Symptom $\rightarrow$ Diagnosis $\rightarrow$ Fix tuning decision matrix!
 
 ---
 
@@ -61,8 +77,10 @@ Use this quick-lookup map to jump directly to the exact file you need:
 
 | What Do You Want To Do? | Exact File / Script | Who It's For |
 | :--- | :--- | :--- |
+| **Step-by-Step Run, Reflect & Improve Master Guide** | [`GUIDE_RUN_REFLECT_IMPROVE.md`](GUIDE_RUN_REFLECT_IMPROVE.md) | Everyone (Zero-Search Guide) |
 | **Install everything automatically (ROS 2 + `f1tenth_gym` + build)** | [`setup_f1tenth.sh`](setup_f1tenth.sh) | Beginners & Fresh Ubuntu |
-| **Launch simulator, RViz2, or any AI controller without long commands** | [`run_race.sh`](run_race.sh) | Everyone |
+| **Launch simulator, RViz2, or any AI controller in 1 command** | [`run_race.sh`](run_race.sh) | Everyone |
+| **All-in-One ROS 2 Launcher (Sim + Bridge + RViz2 + AI)** | [`src/f1tenth_gym_ros/launch/race_launch.py`](src/f1tenth_gym_ros/launch/race_launch.py) | ROS 2 Architecture |
 | **Switch between all 12 included circuits + auto-set safe spawn pose** | [`switch_map.sh`](switch_map.sh) | Everyone |
 | **Run a 10-lap headless physics benchmark (no RViz2 needed)** | [`benchmark_sakhir_lidar.py`](benchmark_sakhir_lidar.py) | Tuning & Verification |
 | **Inspect / tune the Stable 10-Stage Adaptive LiDAR Controller (V2)** | [`src/controllers/controllers/lidar_race_core.py`](src/controllers/controllers/lidar_race_core.py) & [`lidar_race_node.py`](src/controllers/controllers/lidar_race_node.py) | Engineers / Grading |
@@ -82,8 +100,9 @@ Use this quick-lookup map to jump directly to the exact file you need:
 ```text
 F1Tenth-Repository/
 ├── setup_f1tenth.sh                         # 1-command automated OS/ROS 2/f1tenth_gym/colcon installer
-├── run_race.sh                              # 1-command interactive launcher (sim / lidar / qualifier / gap / bench)
+├── run_race.sh                              # 1-command interactive launcher (race / sim / lidar / qualifier / gap)
 ├── switch_map.sh                            # 1-command interactive track switcher for all 12 official maps
+├── GUIDE_RUN_REFLECT_IMPROVE.md             # Master step-by-step Run, Reflect & Improve tuning guide
 ├── README.md                                # Complete beginner-friendly + deep-dive engineering documentation
 ├── CONTROLLER_TUTORIAL.md                   # Synchronized standalone technical tutorial & Oral Defense guide
 ├── benchmark_sakhir_lidar.py                # Standalone headless 10-lap + post-Lap-10 cooldown physics verifier
@@ -116,7 +135,8 @@ F1Tenth-Repository/
     │   ├── setup.py                         # Installs launch/, config/, and all 12 maps/ into ROS 2 share/
     │   ├── config/sim.yaml                  # Portable zero-config map_path ('Sakhir_map') & starting pose
     │   ├── f1tenth_gym_ros/gym_bridge.py    # 100 Hz RK4 physics + 250 Hz /scan + auto-resolving map loader
-    │   ├── launch/gym_bridge_launch.py      # Auto-resolving launcher (works on any Linux username!)
+    │   ├── launch/race_launch.py            # All-in-one launcher (Sim + Bridge + RViz2 + AI Controller)
+    │   ├── launch/gym_bridge_launch.py      # Auto-resolving simulator launcher (works on any Linux username!)
     │   ├── launch/gym_bridge.rviz           # Pre-configured RViz2 layout with LapCounterHUD enabled
     │   └── maps/                            # All 12 official F1Tenth maps (.png + .yaml = 24 files)
     └── path_planning/                       # Waypoint recorder utilities

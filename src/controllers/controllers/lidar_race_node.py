@@ -119,7 +119,26 @@ class LidarRaceNode(Node):
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.lidar_callback, 10)
         self.odom_sub = self.create_subscription(Odometry, '/ego_racecar/odom', self.odom_callback, 10)
 
+        # Connection status tracking & friendly reminder
+        self.received_first_scan = False
+        self.received_first_odom = False
+        self.connection_check_timer = self.create_timer(2.5, self._check_simulator_connection)
+
         self._print_startup_banner()
+
+    def _check_simulator_connection(self):
+        if not self.received_first_scan:
+            self.get_logger().warn(
+                "\n" + "=" * 76 + "\n"
+                "  ⏳ WAITING FOR SIMULATOR TELEMETRY (/scan)...\n"
+                "  ⚠️  The simulator is not yet publishing sensor data.\n"
+                "  👉 Make sure the simulator is running! In another terminal, run:\n"
+                "        ./run_race.sh sim\n"
+                "     (Or launch both Sim + AI in 1 command: ./run_race.sh race)\n"
+                + "=" * 76
+            )
+        else:
+            self.connection_check_timer.cancel()
 
     def _print_startup_banner(self):
         p = self.core.p
@@ -211,7 +230,7 @@ class LidarRaceNode(Node):
         if dist_to_start > 8.0 and self.distance_traveled_this_lap > 150.0:
             self.left_start_zone = True
 
-        gate_radius = 2.4
+        gate_radius = 5.0  # Sakhir track width is ~7.5m; 5.0m ensures full corridor coverage
         min_lap_duration = 20.0
         min_lap_distance = 280.0
         elapsed_lap = t_sim - (self.lap_start_time or t_sim)
@@ -220,7 +239,7 @@ class LidarRaceNode(Node):
 
         if (self.left_start_zone and dist_to_start < gate_radius and
             elapsed_lap > min_lap_duration and self.distance_traveled_this_lap > min_lap_distance and
-            yaw_diff < 1.0):
+            yaw_diff < 1.3):
             self.current_lap += 1
             lap_time = elapsed_lap
             used_trim = self.core.trim_label
@@ -449,7 +468,13 @@ class LidarRaceNode(Node):
                 sys.exit(0)
             return
 
-        min_range = float(np.min(np.nan_to_num(scan_msg.ranges, nan=30.0, posinf=30.0)))
+        if not self.received_first_scan:
+            self.received_first_scan = True
+            self.get_logger().info("✅ Connected to simulator! Pure-LiDAR perception active.")
+
+        # Ignore zero or non-physical negative ranges (laser artifacts)
+        valid_ranges = [r for r in scan_msg.ranges if 0.05 < r < 30.0]
+        min_range = float(np.min(valid_ranges)) if valid_ranges else 30.0
         self.min_wall_clearance_this_lap = min(self.min_wall_clearance_this_lap, min_range)
 
         # Instant mid-lap safety downshift if clearance ever drops below 0.48m
@@ -462,8 +487,8 @@ class LidarRaceNode(Node):
         t_sim = self._sim_time(scan_msg.header.stamp)
         elapsed_lap = t_sim - (self.lap_start_time or t_sim) if self.lap_start_time else 0.0
 
-        # Case 1: Physical barrier contact (< 0.17m is physical contact with car width=0.31m)
-        if min_range < 0.17:
+        # Case 1: Physical barrier contact (< 0.14m is physical contact with car half-width=0.155m)
+        if min_range < 0.14:
             self.total_collisions += 1
             self.get_logger().error(f"EMERGENCY HALT: Barrier collision detected (clearance={min_range:.3f}m)! Halting vehicle and saving race results.")
             self._finish_race_and_stop(reason="COLLISION_WITH_BARRIER")
@@ -475,9 +500,9 @@ class LidarRaceNode(Node):
             self._finish_race_and_stop(reason="TRACK_DEPARTURE_VOID")
             return
 
-        # Case 3: Lap duration timeout (normal lap is ~42s; >65s indicates vehicle is lost or stuck)
-        if self.left_start_zone and elapsed_lap > 65.0:
-            self.get_logger().error(f"EMERGENCY HALT: Lap time exceeded 65.0s safety timeout (current={elapsed_lap:.1f}s)! Halting vehicle and saving race results.")
+        # Case 3: Lap duration timeout (normal lap is ~40s; >90s indicates vehicle is lost or stuck)
+        if self.left_start_zone and elapsed_lap > 90.0:
+            self.get_logger().error(f"EMERGENCY HALT: Lap time exceeded 90.0s safety timeout (current={elapsed_lap:.1f}s)! Halting vehicle and saving race results.")
             self._finish_race_and_stop(reason="LAP_TIMEOUT_LOST_OR_STUCK")
             return
 

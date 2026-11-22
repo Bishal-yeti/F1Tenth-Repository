@@ -120,7 +120,25 @@ class QualifierRaceNode(Node):
         self.scan_sub = self.create_subscription(LaserScan, '/scan', self.lidar_callback, 10)
         self.odom_sub = self.create_subscription(Odometry, '/ego_racecar/odom', self.odom_callback, 10)
 
+        # Connection status tracking & friendly reminder
+        self.received_first_scan = False
+        self.connection_check_timer = self.create_timer(2.5, self._check_simulator_connection)
+
         self._print_startup_banner()
+
+    def _check_simulator_connection(self):
+        if not self.received_first_scan:
+            self.get_logger().warn(
+                "\n" + "=" * 76 + "\n"
+                "  ⏳ WAITING FOR SIMULATOR TELEMETRY (/scan)...\n"
+                "  ⚠️  The simulator is not yet publishing sensor data.\n"
+                "  👉 Make sure the simulator is running! In another terminal, run:\n"
+                "        ./run_race.sh sim\n"
+                "     (Or launch both Sim + AI in 1 command: ./run_race.sh race)\n"
+                + "=" * 76
+            )
+        else:
+            self.connection_check_timer.cancel()
 
     def _print_startup_banner(self):
         p = self.core.p
@@ -210,9 +228,9 @@ class QualifierRaceNode(Node):
         elapsed_lap = t_sim - (self.lap_start_time or t_sim)
         yaw_diff = abs(np.arctan2(np.sin(self.current_yaw - yaw0), np.cos(self.current_yaw - yaw0)))
 
-        if (self.left_start_zone and dist_to_start < 2.4 and
+        if (self.left_start_zone and dist_to_start < 5.0 and
             elapsed_lap > 20.0 and self.distance_traveled_this_lap > 280.0 and
-            yaw_diff < 1.0):
+            yaw_diff < 1.3):
             self.current_lap += 1
             lap_time = elapsed_lap
             used_trim = self.core.trim_label
@@ -376,10 +394,15 @@ class QualifierRaceNode(Node):
                 sys.exit(0)
             return
 
-        min_range = float(np.min(np.nan_to_num(scan_msg.ranges, nan=30.0, posinf=30.0)))
+        if not self.received_first_scan:
+            self.received_first_scan = True
+            self.get_logger().info("✅ Connected to simulator! Pure-LiDAR perception active.")
+
+        valid_ranges = [r for r in scan_msg.ranges if 0.05 < r < 30.0]
+        min_range = float(np.min(valid_ranges)) if valid_ranges else 30.0
         self.min_wall_clearance_this_lap = min(self.min_wall_clearance_this_lap, min_range)
 
-        if min_range < 0.17:
+        if min_range < 0.14:
             self.total_collisions += 1
             self._finish_race_and_stop(reason="COLLISION_WITH_BARRIER")
             return

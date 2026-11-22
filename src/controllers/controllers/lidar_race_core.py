@@ -38,7 +38,7 @@ DEFAULTS_V2.update(
     mode='ftg_pd',
     fov_angle_deg=140.0,
     bubble_radius=0.52,             # 52cm protective bubble around closest obstacles
-    car_width_safety=0.34,          # 34cm safety width (guarantees mask > 31cm physical car width)
+    car_width_safety=0.35,          # 35cm safety width (guarantees mask > 31cm physical car width)
     inside_width_scale=1.0,         # Symmetrical disparity margin (zero curb clipping)
     gap_thresh=1.5,
     best_point_conv_size=80,
@@ -51,10 +51,10 @@ DEFAULTS_V2.update(
     min_speed=4.20,                 # Initial T0 hairpin velocity (scales up to 6.12 m/s in T8)
     a_brake=7.20,                   # Initial T0 trail-braking (scales up to 8.08 m/s^2 in T8)
     a_lat_max=9.00,                 # Initial T0 lateral grip (scales up to 12.65 m/s^2 in T8)
-    safety_margin=1.50,             # Initial T0 forward runway margin (scales down to 1.15m in T8)
+    safety_margin=1.60,             # Initial T0 forward runway margin (scales down to 1.15m in T8)
     front_cone_half=17,
     exit_lookahead_blend=0.04,      # Controlled straightaway exit acceleration
-    brake_entry_gain=0.13,          # Dynamic trail-braking closing-rate gain
+    brake_entry_gain=0.15,          # Dynamic trail-braking closing-rate gain
     deadband_rad=0.038,             # 2.18° straightaway deadband
     narrow_corridor_width=0.0       # Disabled indoor hallway mode for race circuits
 )
@@ -120,8 +120,8 @@ class RealLidarRaceCore(FollowGapCore):
             raw_front_p40 = float(np.percentile(raw_cone, 40)) if len(raw_cone) > 0 else 0.0
             closest_all = self.last_debug.get('closest', 0.0)
             if (abs(steer) < 0.038 and abs(self.prev_target_angle) < 0.052 and
-                self.prev_front > 14.2 and raw_front_p40 > 18.0 and closest_all > 0.62):
-                d_drs = max(0.0, min(raw_front_p40, self.prev_front * 1.18) - self.p['safety_margin'])
+                self.prev_front > 16.0 and raw_front_p40 > 18.5 and closest_all > 0.65):
+                d_drs = max(0.0, min(raw_front_p40, self.prev_front * 1.15) - 2.20)
                 v_drs = float(np.sqrt(self.p['min_speed'] ** 2 + 2.0 * self.p['a_brake'] * d_drs))
                 speed = float(min(self.p['max_speed'], max(speed, v_drs)))
                 self.last_cmd = (steer, speed)

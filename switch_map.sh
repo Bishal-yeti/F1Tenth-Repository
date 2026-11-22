@@ -86,5 +86,6 @@ if [ -f "/opt/ros/$ROS_DISTRO/setup.bash" ]; then
   # shellcheck disable=SC1090
   source "/opt/ros/$ROS_DISTRO/setup.bash"
   (cd "$REPO_DIR" && colcon build --symlink-install --packages-select f1tenth_gym_ros >/dev/null)
-  echo "✅ Rebuilt f1tenth_gym_ros. Launch with: ./run_race.sh sim"
+  echo "✅ Rebuilt f1tenth_gym_ros. Ready to race on $MAP_NAME!"
+  echo "👉 Launch with: ./run_race.sh race (or Terminal 1: ./run_race.sh sim & Terminal 2: ./run_race.sh lidar)"
 fi
