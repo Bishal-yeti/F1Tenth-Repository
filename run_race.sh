@@ -108,13 +108,19 @@ EOF"
       [ -d "$(dirname "$inst_lf")" ] && cp -f "$src_lf" "$inst_lf" 2>/dev/null || true
     fi
   done
-  # 4. Sync updated Python nodes (controllers & gym_bridge) to build/ if build/ uses copied files
+  # 4. Sync updated Python nodes (controllers & gym_bridge) to build/ and install/
   if [ -d "$REPO_DIR/build/controllers/controllers" ]; then
     cp -f "$REPO_DIR/src/controllers/controllers/"*.py "$REPO_DIR/build/controllers/controllers/" 2>/dev/null || true
   fi
   if [ -d "$REPO_DIR/build/f1tenth_gym_ros/f1tenth_gym_ros" ]; then
     cp -f "$REPO_DIR/src/f1tenth_gym_ros/f1tenth_gym_ros/"*.py "$REPO_DIR/build/f1tenth_gym_ros/f1tenth_gym_ros/" 2>/dev/null || true
   fi
+  for py_inst in "$REPO_DIR"/install/controllers/lib/python*/site-packages/controllers; do
+    [ -d "$py_inst" ] && cp -f "$REPO_DIR/src/controllers/controllers/"*.py "$py_inst/" 2>/dev/null || true
+  done
+  for py_inst in "$REPO_DIR"/install/f1tenth_gym_ros/lib/python*/site-packages/f1tenth_gym_ros; do
+    [ -d "$py_inst" ] && cp -f "$REPO_DIR/src/f1tenth_gym_ros/f1tenth_gym_ros/"*.py "$py_inst/" 2>/dev/null || true
+  done
 }
 
 ACTION="$1"
