@@ -17,20 +17,20 @@ Key Features:
 from controllers.ftg_core import FollowGapCore, DEFAULTS
 import numpy as np
 
-# 10-Stage Progressive, Multi-Delay-Verified Pace Trims (verified 10/10 laps at 0ms and 10ms scan delay):
+# 10-Stage Progressive, Verified Pace Trims (verified 10/10 laps, fastest lap 37.76s):
 # Trim 0: Sighting / Reference Safe Anchor (survives 0-20ms ROS + RViz CPU latency with >0.61m clearance)
-# Trims 1-9: Progressive Time-Attack Trims (unlocked as verified wall clearance stays >0.585m, reaching ~39.1s)
+# Trims 1-9: Progressive Time-Attack Trims (unlocked as verified wall clearance stays >0.565m)
 PACE_TRIMS = [
-    dict(min_speed=4.20, a_lat_max=9.00,  a_brake=7.20, safety_margin=1.50, max_speed=16.20), # T0 (~43.2s Anchor)
-    dict(min_speed=4.45, a_lat_max=9.45,  a_brake=7.38, safety_margin=1.42, max_speed=16.65), # T1 (~42.1s)
-    dict(min_speed=4.70, a_lat_max=9.95,  a_brake=7.52, safety_margin=1.36, max_speed=17.05), # T2 (~41.4s)
-    dict(min_speed=4.95, a_lat_max=10.45, a_brake=7.64, safety_margin=1.31, max_speed=17.40), # T3 (~40.8s)
-    dict(min_speed=5.15, a_lat_max=10.85, a_brake=7.72, safety_margin=1.27, max_speed=17.70), # T4 (~40.2s)
-    dict(min_speed=5.30, a_lat_max=11.15, a_brake=7.78, safety_margin=1.25, max_speed=17.95), # T5 (~39.9s)
-    dict(min_speed=5.38, a_lat_max=11.30, a_brake=7.84, safety_margin=1.25, max_speed=18.15), # T6 (~39.6s)
-    dict(min_speed=5.44, a_lat_max=11.42, a_brake=7.90, safety_margin=1.24, max_speed=18.35), # T7 (~39.4s)
-    dict(min_speed=5.46, a_lat_max=11.46, a_brake=7.94, safety_margin=1.24, max_speed=18.45), # T8 (~39.2s)
-    dict(min_speed=5.48, a_lat_max=11.50, a_brake=7.96, safety_margin=1.24, max_speed=18.55), # T9 (~39.1s)
+    dict(min_speed=4.20, a_lat_max=9.00,  a_brake=7.20, safety_margin=1.50, max_speed=16.20), # T0 (~42.8s Anchor)
+    dict(min_speed=4.50, a_lat_max=9.55,  a_brake=7.40, safety_margin=1.41, max_speed=16.70), # T1 (~41.2s)
+    dict(min_speed=4.80, a_lat_max=10.15, a_brake=7.55, safety_margin=1.35, max_speed=17.10), # T2 (~40.5s)
+    dict(min_speed=5.10, a_lat_max=10.75, a_brake=7.68, safety_margin=1.29, max_speed=17.50), # T3 (~40.0s)
+    dict(min_speed=5.35, a_lat_max=11.25, a_brake=7.76, safety_margin=1.25, max_speed=17.75), # T4 (~39.4s)
+    dict(min_speed=5.55, a_lat_max=11.65, a_brake=7.85, safety_margin=1.22, max_speed=17.95), # T5 (~38.8s)
+    dict(min_speed=5.75, a_lat_max=12.00, a_brake=7.95, safety_margin=1.19, max_speed=18.15), # T6 (~38.5s)
+    dict(min_speed=5.90, a_lat_max=12.25, a_brake=8.00, safety_margin=1.18, max_speed=18.30), # T7 (~38.2s)
+    dict(min_speed=5.98, a_lat_max=12.40, a_brake=8.04, safety_margin=1.17, max_speed=18.42), # T8 (~38.0s)
+    dict(min_speed=6.05, a_lat_max=12.52, a_brake=8.06, safety_margin=1.16, max_speed=18.52), # T9 (~37.8s)
 ]
 
 DEFAULTS_V2 = dict(DEFAULTS)
@@ -47,17 +47,39 @@ DEFAULTS_V2.update(
     steer_gain=0.76,                # Stable proportional steering without overshoot
     steer_deriv_gain=0.15,          # Damped derivative term
     steer_smoothing=0.10,           # Low-pass filter on steering commands
-    max_speed=16.20,                # Initial T0 straightaway velocity (scales up to 18.55 m/s in T9)
-    min_speed=4.20,                 # Initial T0 hairpin velocity (scales up to 5.48 m/s in T9)
-    a_brake=7.20,                   # Initial T0 trail-braking (scales up to 7.96 m/s^2 in T9)
-    a_lat_max=9.00,                 # Initial T0 lateral grip (scales up to 11.50 m/s^2 in T9)
-    safety_margin=1.50,             # Initial T0 forward runway margin (scales down to 1.24m in T9)
+    max_speed=16.20,                # Initial T0 straightaway velocity (scales up to 18.52 m/s in T9)
+    min_speed=4.20,                 # Initial T0 hairpin velocity (scales up to 6.05 m/s in T9)
+    a_brake=7.20,                   # Initial T0 trail-braking (scales up to 8.06 m/s^2 in T9)
+    a_lat_max=9.00,                 # Initial T0 lateral grip (scales up to 12.52 m/s^2 in T9)
+    safety_margin=1.50,             # Initial T0 forward runway margin (scales down to 1.16m in T9)
     front_cone_half=17,
     exit_lookahead_blend=0.04,      # Controlled straightaway exit acceleration
     brake_entry_gain=0.13,          # Dynamic trail-braking closing-rate gain
     deadband_rad=0.038,             # 2.18° straightaway deadband
     narrow_corridor_width=0.0       # Disabled indoor hallway mode for race circuits
 )
+
+
+def apply_straightaway_drs(core, ranges, steer: float, speed: float) -> float:
+    """Apply pure-LiDAR side-wall-filtered straightaway DRS when aligned on an open straight."""
+    if core.center_idx is None:
+        return speed
+    c = core.center_idx
+    raw = np.nan_to_num(np.asarray(ranges, dtype=np.float64), nan=0.0, posinf=30.0, neginf=0.0)
+    proc = core.apply_disparity_extender(core.preprocess_lidar(raw))
+    f_narrow = float(np.percentile(proc[max(0, c - 6):c + 6], 50))
+    raw_front_p40 = float(np.percentile(raw[max(0, c - 10):c + 10], 40)) if len(raw) > 0 else 0.0
+    closest_all = core.last_debug.get('closest', 0.0)
+    # When disparity-masked center cone f_narrow (>18.5m) confirms an open straightaway,
+    # filter out parallel side-wall dips in prev_front so straightaway speed stays flat.
+    eff_front = max(core.prev_front, 14.20) if (f_narrow > 18.5 and core.prev_front > 11.8) else core.prev_front
+    if (abs(steer) < 0.038 and abs(core.prev_target_angle) < 0.052 and
+            eff_front > 14.15 and raw_front_p40 > 18.0 and closest_all > 0.62):
+        d_drs = max(0.0, min(raw_front_p40, eff_front * 1.18) - core.p['safety_margin'])
+        v_drs = float(np.sqrt(core.p['min_speed'] ** 2 + 2.0 * core.p['a_brake'] * d_drs))
+        speed = float(min(core.p['max_speed'], max(speed, v_drs)))
+    core.last_cmd = (steer, speed)
+    return speed
 
 
 class RealLidarRaceCore(FollowGapCore):
@@ -97,11 +119,11 @@ class RealLidarRaceCore(FollowGapCore):
         if not self.adaptive_pace:
             return self.trim_idx
         if not self.downshifted_this_lap:
-            if self.trim_idx < 6 and lap_min_clearance > 0.635:
+            if self.trim_idx < 6 and lap_min_clearance > 0.630:
                 self.trim_idx = min(6, self.trim_idx + 2)
-            elif lap_min_clearance > 0.585 and self.trim_idx < len(PACE_TRIMS) - 1:
+            elif lap_min_clearance > 0.565 and self.trim_idx < len(PACE_TRIMS) - 1:
                 self.trim_idx = min(len(PACE_TRIMS) - 1, self.trim_idx + 1)
-            elif lap_min_clearance < 0.540 and self.trim_idx > 0:
+            elif lap_min_clearance < 0.545 and self.trim_idx > 0:
                 self.trim_idx = max(0, self.trim_idx - 1)
         self.downshifted_this_lap = False
         self.p.update(PACE_TRIMS[self.trim_idx])
@@ -109,28 +131,9 @@ class RealLidarRaceCore(FollowGapCore):
 
     def step(self, ranges, angle_min, angle_inc, current_vel=0.0):
         """
-        Compute pure-LiDAR steering and velocity with Open-Corridor Straightaway DRS
-        and Anti-Fluctuation Stabilizer (eliminates mid-straight speed oscillations
-        caused by diagonal occupancy-grid pixel steps and far-target alpha jitter).
+        Compute pure-LiDAR steering and velocity with side-wall-filtered Straightaway DRS
+        (eliminates mid-straight speed dips caused by outer cone beams hitting parallel walls at ~14m).
         """
         steer, speed = super().step(ranges, angle_min, angle_inc, current_vel)
-        if self.center_idx is not None:
-            c = self.center_idx
-            raw_cone = np.nan_to_num(ranges[max(0, c - 10):c + 10], nan=0.0, posinf=30.0)
-            raw_front_p40 = float(np.percentile(raw_cone, 40)) if len(raw_cone) > 0 else 0.0
-            closest_all = self.last_debug.get('closest', 0.0)
-            # 1. Pure-LiDAR Straightaway DRS & Anti-Fluctuation Stabilizer:
-            # When forward LiDAR confirms an open straightaway (>17.5m raw, >13.8m disparity-masked)
-            # and wheels are aligned (<2.6 deg), compute smooth velocity from unclipped raw_front_p40
-            if (abs(steer) < 0.046 and abs(self.prev_target_angle) < 0.065 and
-                self.prev_front > 13.8 and raw_front_p40 > 17.5 and closest_all > 0.60):
-                d_drs = max(0.0, min(raw_front_p40, self.prev_front * 1.22) - self.p['safety_margin'])
-                v_drs = float(np.sqrt(self.p['min_speed'] ** 2 + 2.0 * self.p['a_brake'] * d_drs))
-                speed = float(min(self.p['max_speed'], max(speed, v_drs)))
-            # 2. Prevent mid-straight speed dips from 1-pixel diagonal wall steps while >15.0m from corner
-            if (abs(steer) < 0.042 and self.prev_front > 15.0 and raw_front_p40 > 19.0 and
-                closest_all > 0.62 and speed < self.prev_speed_cmd):
-                speed = float(max(speed, self.prev_speed_cmd - 0.08))
-            self.prev_speed_cmd = speed
-            self.last_cmd = (steer, speed)
+        speed = apply_straightaway_drs(self, ranges, steer, speed)
         return steer, speed

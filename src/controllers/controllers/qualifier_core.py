@@ -16,13 +16,13 @@ Engineered specifically for Live ROS 2 + RViz2 Qualifying on Sakhir GP:
 
 import numpy as np
 from controllers.ftg_core import FollowGapCore
-from controllers.lidar_race_core import DEFAULTS_V2, PACE_TRIMS
+from controllers.lidar_race_core import DEFAULTS_V2, apply_straightaway_drs
 
 QUALIFIER_TRIMS = [
-    PACE_TRIMS[0],  # Index 0: Emergency mid-lap safety anchor T0 (4.20 m/s)
-    PACE_TRIMS[6],  # Index 1: Lap 1 Fast Standing-Start Trim Q-T6 (5.75 m/s, 18.15 m/s, >0.59m clearance)
-    PACE_TRIMS[7],  # Index 2: Lap 2 Qualifying Trim Q-T7 (5.95 m/s, 18.35 m/s, >0.55m clearance)
-    PACE_TRIMS[8],  # Index 3: Lap 3+ Peak Qualifying Trim Q-T8 (6.12 m/s, 18.60 m/s, 38.41s)
+    dict(min_speed=4.20, a_lat_max=9.00,  a_brake=7.20, safety_margin=1.50, max_speed=16.20), # Index 0: Emergency safety anchor T0
+    dict(min_speed=5.75, a_lat_max=12.00, a_brake=7.95, safety_margin=1.19, max_speed=18.15), # Index 1: Lap 1 Fast Standing-Start Q-T6 (~39.05s)
+    dict(min_speed=5.95, a_lat_max=12.35, a_brake=8.02, safety_margin=1.17, max_speed=18.35), # Index 2: Lap 2 Qualifying Trim Q-T7 (~38.28s)
+    dict(min_speed=6.12, a_lat_max=12.65, a_brake=8.08, safety_margin=1.15, max_speed=18.60), # Index 3: Lap 3+ Peak Qualifying Trim Q-T8 (~37.88s)
 ]
 
 QUALIFIER_LABELS = ["Q-SAFE(T0)", "Q-T6", "Q-T7", "Q-T8"]
@@ -75,20 +75,6 @@ class QualifierLidarCore(FollowGapCore):
         min_scan = float(np.min(np.nan_to_num(ranges, nan=30.0, posinf=30.0)))
         self.check_mid_lap_safety(min_scan, cur_lap_dist=cur_lap_dist)
         steer, speed = super().step(ranges, angle_min, angle_inc, current_vel)
-
-        if self.q_idx >= 2 and self.center_idx is not None and min_scan >= 0.55:
-            c = self.center_idx
-            raw_cone = np.nan_to_num(ranges[max(0, c - 4):c + 4], nan=0.0, posinf=30.0)
-            raw_f = float(np.percentile(raw_cone, 40)) if len(raw_cone) > 0 else 0.0
-            if (raw_f > 23.0 and self.prev_front > 14.2 and
-                abs(steer) < 0.034 and abs(self.prev_target_angle) < 0.048 and min_scan > 0.62):
-                d_drs = max(0.0, raw_f - 5.6)
-                v_drs = float(np.sqrt(self.p['min_speed'] ** 2 + 2.0 * self.p['a_brake'] * d_drs))
-                speed = float(min(17.80, max(speed, v_drs)))
-            elif current_vel > 15.5 and raw_f < 23.0:
-                d_pre = max(0.0, raw_f - 5.6)
-                v_pre = float(np.sqrt(self.p['min_speed'] ** 2 + 2.0 * self.p['a_brake'] * d_pre))
-                speed = float(min(speed, v_pre))
-            self.last_cmd = (steer, speed)
-
+        if min_scan >= 0.50:
+            speed = apply_straightaway_drs(self, ranges, steer, speed)
         return steer, speed

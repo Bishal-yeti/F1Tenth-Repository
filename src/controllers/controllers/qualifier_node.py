@@ -117,8 +117,9 @@ class QualifierRaceNode(Node):
         self.traj_marker_pub = self.create_publisher(Marker, '/ftg_trajectory_marker', 10)
         self.path_pub = self.create_publisher(Path, '/ftg_path', 10)
 
-        self.scan_sub = self.create_subscription(LaserScan, '/scan', self.lidar_callback, 10)
-        self.odom_sub = self.create_subscription(Odometry, '/ego_racecar/odom', self.odom_callback, 10)
+        # Queue depth 1 ensures zero stale-message backlog under RViz2 CPU load
+        self.scan_sub = self.create_subscription(LaserScan, '/scan', self.lidar_callback, 1)
+        self.odom_sub = self.create_subscription(Odometry, '/ego_racecar/odom', self.odom_callback, 1)
 
         # Connection status tracking & friendly reminder
         self.received_first_scan = False

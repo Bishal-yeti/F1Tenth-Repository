@@ -142,10 +142,11 @@ class GymBridge(Node):
             self.obs, _ , self.done, _ = self.env.reset(np.array([[sx, sy, stheta]]))
             self.ego_scan = list(self.obs['scans'][0])
 
-        # sim physical step timer (100 Hz)
+        # sim physical step timer (100 Hz). Scan/odom/TF are published IMMEDIATELY after each
+        # physics step inside drive_timer_callback -> zero phase lag between physics and LiDAR
+        # (a separate unsynchronized publish timer adds up to 10 ms of latency, which caused
+        # hairpin understeer crashes at high pace trims).
         self.drive_timer = self.create_timer(0.01, self.drive_timer_callback)
-        # topic publishing timer (100 Hz, synchronized 1:1 with physics step to prevent RViz2 CPU overload)
-        self.timer = self.create_timer(0.01, self.timer_callback)
 
         # transform broadcaster
         self.br = TransformBroadcaster(self)
@@ -245,6 +246,7 @@ class GymBridge(Node):
         elif self.ego_drive_published and self.has_opp and self.opp_drive_published:
             self.obs, _, self.done, _ = self.env.step(np.array([[self.ego_steer, self.ego_requested_speed], [self.opp_steer, self.opp_requested_speed]]))
         self._update_sim_state()
+        self.timer_callback()
 
     def timer_callback(self):
         ts = self.get_clock().now().to_msg()
