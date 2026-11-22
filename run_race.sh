@@ -51,8 +51,16 @@ if [ -f "$REPO_DIR/src/f1tenth_gym_ros/config/sim.yaml" ]; then
   ACTIVE_MAP="$(grep "map_path:" "$REPO_DIR/src/f1tenth_gym_ros/config/sim.yaml" | head -n1 | sed -e "s/.*map_path:[ ']*//" -e "s/['\"].*//" | xargs basename)"
 fi
 
-# Auto-check & fix RViz2 black map patch (GLSL 120 dual-sampler conflict + installed rviz config sync)
+# Auto-check & fix RViz2 black map patch (WSL2 d3d12 driver + GLSL 120 dual-sampler + rviz config sync)
 ensure_rviz_map_ready() {
+  # 1. On WSL2, Mesa's d3d12 (OpenGL-over-DirectX12) driver fails to render Ogre's 8-bit
+  #    GL_LUMINANCE8 map texture (producing a black square). Force Mesa's llvmpipe rasterizer.
+  if [ -d /mnt/wslg ] || grep -qi microsoft /proc/version 2>/dev/null; then
+    export LIBGL_ALWAYS_SOFTWARE=1
+    export GALLIUM_DRIVER=llvmpipe
+  fi
+
+  # 2. Apply single-sampler GLSL 1.20 shader fix
   local frag="/opt/ros/$ROS_DISTRO/share/rviz_rendering/ogre_media/materials/glsl120/indexed_8bit_image.frag"
   local mat="/opt/ros/$ROS_DISTRO/share/rviz_rendering/ogre_media/materials/scripts/indexed_8bit_image.material"
   if [ -f "$frag" ] && ! grep -q "Single-sampler GLSL 120" "$frag"; then
@@ -82,12 +90,24 @@ EOF"
       sudo sed -i 's/^\([[:space:]]*\)param_named palette int 1/\1\/\/ param_named palette int 1/' "$mat" || true
     fi
   fi
-  # Ensure installed gym_bridge.rviz matches source gym_bridge.rviz (full-track camera view)
+
+  # 3. Sync source gym_bridge.rviz and launch files to build/ and install/ (even if symlinked to build/)
   local src_rviz="$REPO_DIR/src/f1tenth_gym_ros/launch/gym_bridge.rviz"
+  local build_rviz="$REPO_DIR/build/f1tenth_gym_ros/launch/gym_bridge.rviz"
   local inst_rviz="$REPO_DIR/install/f1tenth_gym_ros/share/f1tenth_gym_ros/launch/gym_bridge.rviz"
-  if [ -f "$src_rviz" ] && [ -d "$(dirname "$inst_rviz")" ] && [ ! -L "$inst_rviz" ]; then
-    cp -f "$src_rviz" "$inst_rviz" 2>/dev/null || true
+  if [ -f "$src_rviz" ]; then
+    [ -d "$(dirname "$build_rviz")" ] && cp -f "$src_rviz" "$build_rviz" 2>/dev/null || true
+    [ -d "$(dirname "$inst_rviz")" ] && cp -f "$src_rviz" "$inst_rviz" 2>/dev/null || true
   fi
+  for lf in gym_bridge_launch.py race_launch.py; do
+    local src_lf="$REPO_DIR/src/f1tenth_gym_ros/launch/$lf"
+    local build_lf="$REPO_DIR/build/f1tenth_gym_ros/launch/$lf"
+    local inst_lf="$REPO_DIR/install/f1tenth_gym_ros/share/f1tenth_gym_ros/launch/$lf"
+    if [ -f "$src_lf" ]; then
+      [ -d "$(dirname "$build_lf")" ] && cp -f "$src_lf" "$build_lf" 2>/dev/null || true
+      [ -d "$(dirname "$inst_lf")" ] && cp -f "$src_lf" "$inst_lf" 2>/dev/null || true
+    fi
+  done
 }
 
 ACTION="$1"

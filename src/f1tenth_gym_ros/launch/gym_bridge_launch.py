@@ -39,6 +39,29 @@ def resolve_map_path(raw_map_path: str) -> str:
     return expanded
 
 
+def resolve_rviz_config() -> str:
+    """Prefer source gym_bridge.rviz so camera/view updates apply immediately without rebuild."""
+    share_dir = get_package_share_directory('f1tenth_gym_ros')
+    ws_root = os.path.abspath(os.path.join(share_dir, '..', '..', '..', '..'))
+    src_rviz = os.path.join(ws_root, 'src', 'f1tenth_gym_ros', 'launch', 'gym_bridge.rviz')
+    if os.path.exists(src_rviz):
+        return src_rviz
+    return os.path.join(share_dir, 'launch', 'gym_bridge.rviz')
+
+
+def get_rviz_wsl_env() -> dict:
+    """On WSL2, force Mesa llvmpipe software rasterizer to prevent d3d12 black map textures."""
+    is_wsl = os.path.exists('/mnt/wslg')
+    if not is_wsl and os.path.exists('/proc/version'):
+        try:
+            is_wsl = 'microsoft' in open('/proc/version', 'r').read().lower()
+        except Exception:
+            pass
+    if is_wsl:
+        return {'LIBGL_ALWAYS_SOFTWARE': '1', 'GALLIUM_DRIVER': 'llvmpipe'}
+    return {}
+
+
 def generate_launch_description():
     ld = LaunchDescription()
     config = os.path.join(
@@ -61,7 +84,8 @@ def generate_launch_description():
         package='rviz2',
         executable='rviz2',
         name='rviz',
-        arguments=['-d', os.path.join(get_package_share_directory('f1tenth_gym_ros'), 'launch', 'gym_bridge.rviz')]
+        arguments=['-d', resolve_rviz_config()],
+        additional_env=get_rviz_wsl_env()
     )
     map_server_node = Node(
         package='nav2_map_server',

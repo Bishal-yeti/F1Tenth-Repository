@@ -176,9 +176,16 @@ rosdep update >/dev/null 2>&1 || true
 rm -rf build/ install/ log/
 colcon build --symlink-install
 
-# Auto-add ROS 2 sourcing to ~/.bashrc if not present
+# Auto-add ROS 2 sourcing & WSL2 RViz2 OpenGL fix to ~/.bashrc if not present
 if ! grep -q "/opt/ros/$ROS_DISTRO/setup.bash" "$HOME/.bashrc" 2>/dev/null; then
   echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> "$HOME/.bashrc"
+fi
+if ( [ -d /mnt/wslg ] || grep -qi microsoft /proc/version 2>/dev/null ) && ! grep -q "LIBGL_ALWAYS_SOFTWARE=1" "$HOME/.bashrc" 2>/dev/null; then
+  {
+    echo "# Fix WSL2 d3d12 OpenGL black map texture in RViz2"
+    echo "export LIBGL_ALWAYS_SOFTWARE=1"
+    echo "export GALLIUM_DRIVER=llvmpipe"
+  } >> "$HOME/.bashrc"
 fi
 
 # 7. Automated End-to-End Smoke Test
