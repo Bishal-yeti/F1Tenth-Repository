@@ -51,6 +51,45 @@ if [ -f "$REPO_DIR/src/f1tenth_gym_ros/config/sim.yaml" ]; then
   ACTIVE_MAP="$(grep "map_path:" "$REPO_DIR/src/f1tenth_gym_ros/config/sim.yaml" | head -n1 | sed -e "s/.*map_path:[ ']*//" -e "s/['\"].*//" | xargs basename)"
 fi
 
+# Auto-check & fix RViz2 black map patch (GLSL 120 dual-sampler conflict + installed rviz config sync)
+ensure_rviz_map_ready() {
+  local frag="/opt/ros/$ROS_DISTRO/share/rviz_rendering/ogre_media/materials/glsl120/indexed_8bit_image.frag"
+  local mat="/opt/ros/$ROS_DISTRO/share/rviz_rendering/ogre_media/materials/scripts/indexed_8bit_image.material"
+  if [ -f "$frag" ] && ! grep -q "Single-sampler GLSL 120" "$frag"; then
+    echo "🔧 Applying universal RViz2 Map shader fix (prevents black patch on fresh PCs)..."
+    sudo bash -c "cat << 'EOF' > \"$frag\"
+#version 120
+
+// Single-sampler GLSL 120 shader (eliminates sampler2D/sampler1D unit 0 link conflict on all GPUs)
+varying vec2 UV;
+uniform sampler2D eight_bit_image;
+uniform float alpha;
+
+void main()
+{
+  float raw = texture2D( eight_bit_image, UV ).x * 255.0;
+  vec3 rgb;
+  if (raw <= 100.5) {
+    float g = clamp(1.0 - (raw / 100.0), 0.0, 1.0);
+    rgb = vec3(g, g, g);
+  } else {
+    rgb = vec3(0.804, 0.804, 0.804);
+  }
+  gl_FragColor = vec4( rgb, alpha );
+}
+EOF"
+    if [ -f "$mat" ]; then
+      sudo sed -i 's/^\([[:space:]]*\)param_named palette int 1/\1\/\/ param_named palette int 1/' "$mat" || true
+    fi
+  fi
+  # Ensure installed gym_bridge.rviz matches source gym_bridge.rviz (full-track camera view)
+  local src_rviz="$REPO_DIR/src/f1tenth_gym_ros/launch/gym_bridge.rviz"
+  local inst_rviz="$REPO_DIR/install/f1tenth_gym_ros/share/f1tenth_gym_ros/launch/gym_bridge.rviz"
+  if [ -f "$src_rviz" ] && [ -d "$(dirname "$inst_rviz")" ] && [ ! -L "$inst_rviz" ]; then
+    cp -f "$src_rviz" "$inst_rviz" 2>/dev/null || true
+  fi
+}
+
 ACTION="$1"
 if [ -z "$ACTION" ]; then
   echo "=============================================================================="
@@ -92,6 +131,7 @@ fi
 
 case "$ACTION" in
   race)
+    ensure_rviz_map_ready
     echo "=============================================================================="
     echo "  🏎️  STARTING ALL-IN-ONE AUTONOMOUS RACE (SIMULATOR + RVIZ2 + AI CONTROLLER)"
     echo "=============================================================================="
@@ -103,6 +143,7 @@ case "$ACTION" in
     ;;
 
   sim)
+    ensure_rviz_map_ready
     echo ""
     echo "╔══════════════════════════════════════════════════════════════════════════════╗"
     echo "║  🏎️  STEP 1/2: F1TENTH SIMULATOR & RVIZ2 STARTING (TERMINAL 1)                 ║"

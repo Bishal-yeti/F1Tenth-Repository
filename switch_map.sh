@@ -65,9 +65,9 @@ fi
 
 IFS='|' read -r MAP_NAME SX SY STHETA DESC <<< "$SELECTED"
 
-python3 - "$SIM_YAML" "$REPO_DIR/src/f1tenth_gym_ros/maps/$MAP_NAME" "$SX" "$SY" "$STHETA" << 'EOF'
-import sys, re
-yaml_path, full_map_path, sx, sy, stheta = sys.argv[1:6]
+python3 - "$SIM_YAML" "$REPO_DIR/src/f1tenth_gym_ros/maps/$MAP_NAME" "$SX" "$SY" "$STHETA" "$REPO_DIR/src/f1tenth_gym_ros/launch/gym_bridge.rviz" "$MAP_NAME" << 'EOF'
+import sys, re, os
+yaml_path, full_map_path, sx, sy, stheta, rviz_path, map_name = sys.argv[1:8]
 with open(yaml_path, "r") as f:
     txt = f.read()
 txt = re.sub(r"map_path:.*", f"map_path: '{full_map_path}'", txt)
@@ -76,6 +76,26 @@ txt = re.sub(r"^\s*sy:.*$", f"    sy: {sy}", txt, flags=re.MULTILINE)
 txt = re.sub(r"^\s*stheta:.*$", f"    stheta: {stheta}", txt, flags=re.MULTILINE)
 with open(yaml_path, "w") as f:
     f.write(txt)
+
+if os.path.exists(rviz_path):
+    with open(rviz_path, "r") as f:
+        rtxt = f.read()
+    if map_name == "Sakhir_map":
+        fx, fy, dist = "30.25", "12.16", "145"
+    else:
+        fx, fy, dist = "0", "0", "110"
+    rtxt = re.sub(
+        r"(Views:\s+Current:\s+Class: rviz_default_plugins/Orbit\s+Distance:\s*)[0-9.]+",
+        rf"\g<1>{dist}",
+        rtxt,
+    )
+    rtxt = re.sub(
+        r"(Focal Point:\s+X:\s*)[-0-9.]+(\s+Y:\s*)[-0-9.]+",
+        rf"\g<1>{fx}\g<2>{fy}",
+        rtxt,
+    )
+    with open(rviz_path, "w") as f:
+        f.write(rtxt)
 EOF
 
 echo "✅ Updated sim.yaml -> Map: $REPO_DIR/src/f1tenth_gym_ros/maps/$MAP_NAME | Pose: (sx=$SX, sy=$SY, stheta=$STHETA)"

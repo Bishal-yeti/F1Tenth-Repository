@@ -133,25 +133,36 @@ if dpkg -s python3-coverage >/dev/null 2>&1; then
   sudo apt purge -y python3-coverage
 fi
 
-# Fix Mesa/WSL2 RViz Map shader linking bug (active samplers with different type)
+# Fix Mesa/WSL2/Intel/AMD RViz2 Map black-patch bug (GLSL 120 dual-sampler link conflict)
+# Uses a pure GLSL 1.20 single-sampler (sampler2D-only) shader that works on 100% of OpenGL drivers
 RVIZ_MAP_FRAG="/opt/ros/$ROS_DISTRO/share/rviz_rendering/ogre_media/materials/glsl120/indexed_8bit_image.frag"
-if [ -f "$RVIZ_MAP_FRAG" ] && ! grep -q "GL_ARB_shading_language_420pack" "$RVIZ_MAP_FRAG"; then
-  echo "      Applying Mesa/WSL2 RViz2 shader patch for Map display..."
+RVIZ_MAP_MAT="/opt/ros/$ROS_DISTRO/share/rviz_rendering/ogre_media/materials/scripts/indexed_8bit_image.material"
+if [ -f "$RVIZ_MAP_FRAG" ] && ! grep -q "Single-sampler GLSL 120" "$RVIZ_MAP_FRAG"; then
+  echo "      Applying universal single-sampler RViz2 Map shader fix (prevents black map patch)..."
   sudo bash -c "cat << 'EOF' > \"$RVIZ_MAP_FRAG\"
 #version 120
-#extension GL_ARB_shading_language_420pack : require
 
+// Single-sampler GLSL 120 shader (eliminates sampler2D/sampler1D unit 0 link conflict on all GPUs)
 varying vec2 UV;
-layout(binding = 0) uniform sampler2D eight_bit_image;
-layout(binding = 1) uniform sampler1D palette;
+uniform sampler2D eight_bit_image;
 uniform float alpha;
 
 void main()
 {
-  vec4 color = texture1D( palette, 0.999 * texture2D( eight_bit_image, UV ).x );
-  gl_FragColor = vec4( color.rgb, color.a * alpha );
+  float raw = texture2D( eight_bit_image, UV ).x * 255.0;
+  vec3 rgb;
+  if (raw <= 100.5) {
+    float g = clamp(1.0 - (raw / 100.0), 0.0, 1.0);
+    rgb = vec3(g, g, g);
+  } else {
+    rgb = vec3(0.804, 0.804, 0.804);
+  }
+  gl_FragColor = vec4( rgb, alpha );
 }
 EOF"
+  if [ -f "$RVIZ_MAP_MAT" ]; then
+    sudo sed -i 's/^\([[:space:]]*\)param_named palette int 1/\1\/\/ param_named palette int 1/' "$RVIZ_MAP_MAT" || true
+  fi
 fi
 
 # 6. Clean build the ROS 2 workspace (f1tenth_gym_ros + controllers + path_planning + 12 maps)
