@@ -172,40 +172,42 @@ Use this quick-lookup map to jump directly to the exact file you need:
 | **Inspect portable username-independent map resolution** | [`src/f1tenth_gym_ros/launch/gym_bridge_launch.py`](src/f1tenth_gym_ros/launch/gym_bridge_launch.py) & [`gym_bridge.py`](src/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py) | ROS 2 Architecture |
 | **Browse all 12 bundled track maps (`.png` + `.yaml`)** | [`src/f1tenth_gym_ros/maps/`](src/f1tenth_gym_ros/maps/) | Track Assets |
 | **Replay 10-lap Sakhir GP ROS 2 Rosbag (`zstd` compressed)** | [`rosbags/sakhir_gp_10_laps/`](rosbags/sakhir_gp_10_laps/) ([Guide](rosbags/README.md)) | Competition Evidence |
-| **View verified 10-lap telemetry & time-gained CSV logs** | [`data/lap_times_sakhir_v2_fast.csv`](data/lap_times_sakhir_v2_fast.csv), [`data/lap_time_gains_sakhir.csv`](data/lap_time_gains_sakhir.csv), [`data/lap_times_sakhir_qualifier.csv`](data/lap_times_sakhir_qualifier.csv), [`data/lap_times_sakhir.csv`](data/lap_times_sakhir.csv) | Competition Evidence |
+| **View verified 10-lap telemetry & time-gained CSV logs** | [`data/f1tenth_lap_summary.csv`](data/f1tenth_lap_summary.csv), [`data/f1tenth_race_telemetry.csv`](data/f1tenth_race_telemetry.csv), [`data/lap_times_sakhir_v2_fast.csv`](data/lap_times_sakhir_v2_fast.csv), [`data/lap_time_gains_sakhir.csv`](data/lap_time_gains_sakhir.csv), [`data/lap_times_sakhir_qualifier.csv`](data/lap_times_sakhir_qualifier.csv), [`data/lap_times_sakhir.csv`](data/lap_times_sakhir.csv) | Competition Evidence |
 | **Watch the Sakhir GP demonstration video** | [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) & [`docs/Sakhir_GP_10_Laps_Demo.gif`](docs/Sakhir_GP_10_Laps_Demo.gif) | Part B.4 Video Evidence |
 
 <details>
-<summary><strong>📂 Click to expand Clean Repository Directory Tree</strong></summary>
+<summary><strong>📂 Click to expand Complete Repository Map (⭐ Important Folders Marked)</strong></summary>
 
 ```text
 F1Tenth-Repository/
-├── README.md                                # Complete beginner-friendly + deep-dive engineering documentation
-├── setup_f1tenth.sh                         # 1-command automated OS/ROS 2/f1tenth_gym/colcon installer
-├── run_race.sh                              # 1-command interactive launcher (race / sim / lidar / qualifier / gap)
-├── data/                                    # Verified 10-lap CSV telemetry & time-gain logs
-│   ├── lap_times_sakhir_v2_fast.csv         # Version 2 verified 10-lap telemetry log
+├── README.md                                # ⭐ IMPORTANT: Master project guide & engineering reference
+├── setup_f1tenth.sh                         # ⭐ IMPORTANT: 1-command automated OS/ROS 2/f1tenth_gym/colcon installer
+├── run_race.sh                              # ⭐ IMPORTANT: 1-command interactive launcher (race / sim / lidar / qualifier / gap)
+├── data/                                    # ⭐ IMPORTANT: Verified 10-lap CSV telemetry, high-freq logs & time-gains
+│   ├── f1tenth_lap_summary.csv              # 10-lap summary export from recorded video race (best: 38.840 s)
+│   ├── f1tenth_race_telemetry.csv           # 100 Hz full-race telemetry (43,039 samples: pose, speed, steer, LiDAR)
+│   ├── lap_times_sakhir_v2_fast.csv         # Version 2 verified 10-lap telemetry log (matched to rosbag)
 │   ├── lap_time_gains_sakhir.csv            # Per-lap & cumulative time-gained log (T0 -> T9)
 │   ├── lap_times_sakhir_qualifier.csv       # Version 3 Qualifier telemetry log
 │   └── lap_times_sakhir.csv                 # Version 1 Endurance telemetry log (tag: v1.0-stable)
-├── docs/                                    # Guides, tutorials, plots & inline demo animation
+├── rosbags/                                 # ⭐ IMPORTANT: Compressed ROS 2 Humble rosbag recordings
+│   ├── README.md                            # Instructions for `ros2 bag info` and `ros2 bag play`
+│   └── sakhir_gp_10_laps/                   # 10-lap Sakhir GP run (/scan, /drive, /odom, /tf, /lap_hud_markers)
+├── scripts/                                 # ⭐ IMPORTANT: Utility & headless verification scripts
+│   ├── switch_map.sh                        # 1-command interactive track switcher for all 12 official maps
+│   └── benchmark_sakhir_lidar.py            # Standalone headless 10-lap + post-Lap-10 cooldown physics verifier
+├── docs/                                    # ⭐ IMPORTANT: Tuning guides, tutorials, plots & inline demo animation
 │   ├── GUIDE_RUN_REFLECT_IMPROVE.md         # Master step-by-step Run, Reflect & Improve tuning guide
 │   ├── CONTROLLER_TUTORIAL.md               # Standalone technical tutorial & Oral Defense guide
 │   ├── README_es.md                         # Spanish README translation
 │   ├── Sakhir_GP_10_Laps_Demo.gif           # Inline browser-playable Sakhir GP demonstration animation
 │   └── comparison_trajectories.png          # Sakhir GP 10-lap racing line & velocity comparison plot
-├── rosbags/                                 # Compressed ROS 2 Humble rosbag recordings
-│   ├── README.md                            # Instructions for `ros2 bag info` and `ros2 bag play`
-│   └── sakhir_gp_10_laps/                   # 10-lap Sakhir GP run (/scan, /drive, /odom, /tf, /lap_hud_markers)
-├── scripts/                                 # Utility & benchmark scripts
-│   ├── switch_map.sh                        # 1-command interactive track switcher for all 12 official maps
-│   └── benchmark_sakhir_lidar.py            # Standalone headless 10-lap + post-Lap-10 cooldown physics verifier
 ├── videos/
 │   ├── Sakhir_GP_10_Laps_Demonstration.mp4  # Full high-resolution 1080p60 Sakhir GP demonstration video
 │   └── ...                                  # Reference simulator setup & teleoperation MP4 videos
 ├── img/                                     # Architecture & system diagrams
 ├── Laboratories/                            # Official F1Tenth Labs 1–7 reference guides
-└── src/
+└── src/                                     # ⭐ IMPORTANT: Core ROS 2 Workspace Packages (Controllers, Sim, Maps)
     ├── controllers/                         # ROS 2 Autonomous Racing Controllers Package
     │   ├── package.xml                      # ROS 2 dependencies manifest
     │   ├── setup.py                         # Console scripts: lidar_race_node, qualifier_node, gap_node, etc.
@@ -544,6 +546,14 @@ colcon build --symlink-install
 - ▶️ **Watch Full Video on YouTube**: [https://www.youtube.com/watch?v=ZLSqsSyalms](https://www.youtube.com/watch?v=ZLSqsSyalms)
 - 📥 **Play / Download Full High-Resolution MP4**: [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) ([Direct Raw MP4 Stream](https://github.com/Bishal-yeti/F1Tenth-Repository/raw/main/videos/Sakhir_GP_10_Laps_Demonstration.mp4))
 - 📦 **ROS 2 Bag Recording (10 Laps, `zstd` compressed)**: [`rosbags/sakhir_gp_10_laps/`](rosbags/sakhir_gp_10_laps/) — Inspect & replay with `ros2 bag info rosbags/sakhir_gp_10_laps` and `ros2 bag play rosbags/sakhir_gp_10_laps` ([Rosbag Guide](rosbags/README.md))
+
+### 📊 Recorded Video CSV vs. ROS 2 Rosbag Cross-Run Comparison
+
+| Dataset / Run | Source File | Total 10-Lap Time | Lap 1 (`T0`) | Fastest Lap (`T9`) | Peak Speed | Min Clearance |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Video Run Export (`100 Hz` CSV)** | [`data/f1tenth_lap_summary.csv`](data/f1tenth_lap_summary.csv) & [`f1tenth_race_telemetry.csv`](data/f1tenth_race_telemetry.csv) | `405.341 s` | `43.091 s` | **`38.840 s`** | `15.70 m/s` | `0.612 m` |
+| **ROS 2 Rosbag Run (`zstd` Bag)** | [`rosbags/sakhir_gp_10_laps/`](rosbags/sakhir_gp_10_laps/) & [`data/lap_times_sakhir_v2_fast.csv`](data/lap_times_sakhir_v2_fast.csv) | `405.071 s` | `43.191 s` | **`39.070 s`** | `15.69 m/s` | `0.622 m` |
+| **Difference (`Δ`)** | Cross-Run Reproducibility | **`0.270 s` (`0.07%`)** | `0.100 s` | `0.230 s` | `0.01 m/s` | `0.010 m` |
 
 ---
 
