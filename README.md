@@ -5,10 +5,10 @@
 ![12 Official Tracks](https://img.shields.io/badge/TRACKS_BUNDLED-12_OFFICIAL_MAPS-7c3aed?style=for-the-badge&labelColor=1e293b)
 ![Validation 10 Collision-Free Laps](https://img.shields.io/badge/VALIDATION-10_COLLISION--FREE_LAPS-16a34a?style=for-the-badge&labelColor=1e293b)
 ![Zero-Config Setup](https://img.shields.io/badge/SETUP-1--COMMAND_AUTO_INSTALL-0284c7?style=for-the-badge&labelColor=1e293b)
-[![Watch on YouTube](https://img.shields.io/badge/YOUTUBE-WATCH_DEMO_VIDEO-dc2626?style=for-the-badge&logo=youtube&logoColor=white&labelColor=1e293b)](https://youtu.be/312GBe_lS0U)
+[![Watch on YouTube](https://img.shields.io/badge/YOUTUBE-WATCH_DEMO_VIDEO-dc2626?style=for-the-badge&logo=youtube&logoColor=white&labelColor=1e293b)](https://www.youtube.com/watch?v=ZLSqsSyalms)
 
 - **Author**: Bishal (`Bishal-yeti`)
-- **YouTube Demonstration Video**: [https://youtu.be/312GBe_lS0U](https://youtu.be/312GBe_lS0U)
+- **YouTube Demonstration Video**: [https://www.youtube.com/watch?v=ZLSqsSyalms](https://www.youtube.com/watch?v=ZLSqsSyalms)
 - **Course**: Autonomous Vehicles — F1Tenth Autonomous Racing Competition
 - **Assigned Competition Track**: **Sakhir GP (`Sakhir_map`)** *(+ 11 more official F1Tenth circuits pre-installed and ready to switch in 1 command!)*
 - **Design Philosophy**: **Beginner-friendly on the surface** (1-command install, 0 manual `sim.yaml` username edits, interactive track switcher & launcher, live Speedometer/Lap-Time GUI window) and **deeply rigorous underneath** (100% pure real-time LiDAR perception, 7-stage physics-informed control mathematics, 10-stage adaptive pace trims, and deterministic ROS 2 telemetry).
@@ -521,14 +521,14 @@ colcon build --symlink-install
 ### 🎥 Video Evidence (YouTube & Inline Browser Playback)
 
 <p align="center">
-  <a href="https://youtu.be/312GBe_lS0U">
+  <a href="https://www.youtube.com/watch?v=ZLSqsSyalms">
     <img src="docs/Sakhir_GP_10_Laps_Demo.gif" width="92%" alt="Sakhir GP 10-Lap Autonomous Racing Demonstration" />
   </a>
   <br />
   <em>🎬 Inline Browser Playback — Sakhir GP Autonomous Racing + Live Lap Counter & Timer (Click animation to watch on YouTube)</em>
 </p>
 
-- ▶️ **Watch Full Video on YouTube**: [https://youtu.be/312GBe_lS0U](https://youtu.be/312GBe_lS0U)
+- ▶️ **Watch Full Video on YouTube**: [https://www.youtube.com/watch?v=ZLSqsSyalms](https://www.youtube.com/watch?v=ZLSqsSyalms)
 - 📥 **Play / Download Full High-Resolution MP4**: [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) ([Direct Raw MP4 Stream](https://github.com/Bishal-yeti/F1Tenth-Repository/raw/main/videos/Sakhir_GP_10_Laps_Demonstration.mp4))
 
 ---
