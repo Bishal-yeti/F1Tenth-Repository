@@ -18,8 +18,8 @@ Welcome to the **Zero-Search, Step-by-Step Engineering Guide** for the F1TENTH A
 | **5b. Terminal 2: Fast Qualifier AI** | `./run_race.sh qualifier` | `ros2 run controllers qualifier_node` | Runs Version 3 Fast-Start Qualifier AI (`Q-T6` $\rightarrow$ `Q-T8`) + Live GUI Window |
 | **5c. Terminal 2: Qualifier 4-Lap Sprint**| — | `ros2 run controllers qualifier_node --ros-args -p target_laps:=4` | Runs a 4-lap qualifying sprint and performs active steered cooldown stop after Lap 4 |
 | **5d. Terminal 2: Endurance AI (V1)** | `./run_race.sh gap` | `ros2 run controllers gap_node` | Runs Version 1 constant-trim Endurance Champion (`v1.0-stable`) |
-| **6. Switch Track (12 Circuits)** | `./run_race.sh map` *(or `./switch_map.sh`)* | `./switch_map.sh Sakhir_map` *(or `Zandvoort_map`, `Catalunya_map`, etc.)* | Switches active map in `sim.yaml`, sets verified safe start pose `(sx, sy, stheta)` & rebuilds |
-| **7. Headless 10-Lap Benchmark** | `./run_race.sh bench` | `python3 benchmark_sakhir_lidar.py` | Runs 10-lap RK4 physics benchmark in ~15s without RViz2 and writes CSV logs |
+| **6. Switch Track (12 Circuits)** | `./run_race.sh map` *(or `./scripts/switch_map.sh`)* | `./scripts/switch_map.sh Sakhir_map` *(or `Zandvoort_map`, `Catalunya_map`, etc.)* | Switches active map in `sim.yaml`, sets verified safe start pose `(sx, sy, stheta)` & rebuilds |
+| **7. Headless 10-Lap Benchmark** | `./run_race.sh bench` | `python3 scripts/benchmark_sakhir_lidar.py` | Runs 10-lap RK4 physics benchmark in ~15s without RViz2 and writes CSV logs |
 | **8. View Tuning & Reflection Guide** | `./run_race.sh guide` | `less GUIDE_RUN_REFLECT_IMPROVE.md` | Opens this Run, Reflect & Improve tuning manual in terminal |
 | **9. Monitor Live ROS 2 Topics** | — | `ros2 topic echo /lap_count` \| `/lap_time` \| `/best_lap_time` \| `/race_telemetry` | Streams live lap counter, lap timer, fastest lap, or summary telemetry in terminal |
 | **10. Manual Keyboard Driving** | — | `ros2 run teleop_twist_keyboard teleop_twist_keyboard` | Manual keyboard control (`i`=forward, `u`=left, `o`=right, `k`=stop) |
@@ -185,8 +185,8 @@ When running `lidar_race_node` or `qualifier_node`, the Tkinter dashboard displa
 ### B. CSV Logs & Metric Reference Table
 
 Every run automatically writes full telemetry to CSV files in the repository root:
-- [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv): Comprehensive 12-column telemetry log.
-- [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv): Time-gains and trim parameters log.
+- [`data/lap_times_sakhir_v2_fast.csv`](data/lap_times_sakhir_v2_fast.csv): Comprehensive 12-column telemetry log.
+- [`data/lap_time_gains_sakhir.csv`](data/lap_time_gains_sakhir.csv): Time-gains and trim parameters log.
 
 #### What Each Column Means:
 | Column Header | Unit | Meaning | Ideal Value |
@@ -284,7 +284,7 @@ Instead of launching RViz2 every time you tweak a parameter, run the headless ph
 ```bash
 ./run_race.sh bench
 # OR directly:
-python3 benchmark_sakhir_lidar.py
+python3 scripts/benchmark_sakhir_lidar.py
 ```
 
 - Simulates 10 full laps in **under 20 seconds** (10x faster than real-time).
@@ -298,15 +298,15 @@ python3 benchmark_sakhir_lidar.py
 You can switch to any of the 12 bundled circuits with one command:
 
 ```bash
-./switch_map.sh
+./scripts/switch_map.sh
 ```
 Or specify the track directly:
 ```bash
-./switch_map.sh Zandvoort_map      # Dutch Grand Prix Circuit
-./switch_map.sh Catalunya_map      # Spanish Grand Prix Circuit
-./switch_map.sh Sepang_map         # Malaysian Grand Prix Circuit
-./switch_map.sh BrandsHatch_map    # British Circuit
-./switch_map.sh Sakhir_map         # Return to Bahrain Sakhir GP
+./scripts/switch_map.sh Zandvoort_map      # Dutch Grand Prix Circuit
+./scripts/switch_map.sh Catalunya_map      # Spanish Grand Prix Circuit
+./scripts/switch_map.sh Sepang_map         # Malaysian Grand Prix Circuit
+./scripts/switch_map.sh BrandsHatch_map    # British Circuit
+./scripts/switch_map.sh Sakhir_map         # Return to Bahrain Sakhir GP
 ```
 
 Every circuit comes with a **pre-configured drivable start pose `(sx, sy, stheta)`** so the car never spawns inside a wall!

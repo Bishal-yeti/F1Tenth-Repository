@@ -111,8 +111,9 @@ print(f"  🏁 TOTAL RACE TIME        : {sum([x[1] for x in laps]):.3f} s")
 print(f"  🚀 PEAK SPEED ACHIEVED    : {max([x[3] for x in laps]):.2f} m/s")
 print(f"  🛡️  MIN WALL CLEARANCE     : {min([x[4] for x in laps]):.3f} m ({collisions} Collisions)")
 
-csv_path = "lap_times_sakhir_v2_fast.csv"
-gains_csv_path = "lap_time_gains_sakhir.csv"
+os.makedirs("data", exist_ok=True)
+csv_path = "data/lap_times_sakhir_v2_fast.csv"
+gains_csv_path = "data/lap_time_gains_sakhir.csv"
 
 with open(csv_path, "w", newline="") as f, open(gains_csv_path, "w", newline="") as fg:
     writer = csv.writer(f)

@@ -3,12 +3,12 @@
 # F1Tenth One-Command Interactive Map Switcher (All 12 Bundled Maps!)
 # Automatically updates sim.yaml with the verified starting pose & rebuilds!
 # Usage:
-#   ./switch_map.sh                 (Interactive menu)
-#   ./switch_map.sh Zandvoort_map   (Direct CLI switch)
+#   ./scripts/switch_map.sh                 (Interactive menu)
+#   ./scripts/switch_map.sh Zandvoort_map   (Direct CLI switch)
 # ==============================================================================
 set -e
 
-REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SIM_YAML="$REPO_DIR/src/f1tenth_gym_ros/config/sim.yaml"
 
 # Verified drivable starting poses: "MapName|sx|sy|stheta|Description"

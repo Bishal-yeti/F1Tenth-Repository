@@ -128,7 +128,7 @@ if [ -z "$ACTION" ]; then
   echo "=============================================================================="
   echo "  🏎️  F1TENTH AUTONOMOUS RACING LAUNCHER (ZERO-SEARCH SUITE)"
   echo "=============================================================================="
-  echo "  Active Track : $ACTIVE_MAP  (Use Option [7] or './switch_map.sh' to change)"
+  echo "  Active Track : $ACTIVE_MAP  (Use Option [7] or './scripts/switch_map.sh' to change)"
   echo "  ROS 2 Distro : $ROS_DISTRO"
   echo "------------------------------------------------------------------------------"
   echo "  HOW TO RUN:"
@@ -231,22 +231,22 @@ case "$ACTION" in
     ;;
 
   bench)
-    exec python3 "$REPO_DIR/benchmark_sakhir_lidar.py"
+    exec python3 "$REPO_DIR/scripts/benchmark_sakhir_lidar.py"
     ;;
 
   map)
-    exec "$REPO_DIR/switch_map.sh"
+    exec "$REPO_DIR/scripts/switch_map.sh"
     ;;
 
   guide)
-    if [ -f "$REPO_DIR/GUIDE_RUN_REFLECT_IMPROVE.md" ]; then
+    if [ -f "$REPO_DIR/docs/GUIDE_RUN_REFLECT_IMPROVE.md" ]; then
       if command -v less >/dev/null 2>&1; then
-        less "$REPO_DIR/GUIDE_RUN_REFLECT_IMPROVE.md"
+        less "$REPO_DIR/docs/GUIDE_RUN_REFLECT_IMPROVE.md"
       else
-        cat "$REPO_DIR/GUIDE_RUN_REFLECT_IMPROVE.md"
+        cat "$REPO_DIR/docs/GUIDE_RUN_REFLECT_IMPROVE.md"
       fi
     else
-      echo "Guide file: $REPO_DIR/GUIDE_RUN_REFLECT_IMPROVE.md"
+      echo "Guide file: $REPO_DIR/docs/GUIDE_RUN_REFLECT_IMPROVE.md"
     fi
     ;;
 

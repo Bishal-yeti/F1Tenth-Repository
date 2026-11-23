@@ -59,7 +59,7 @@ class ReactiveFollowGap(Node):
         self.declare_parameter('target_laps', 10)
         self.declare_parameter('stop_after_target_laps', True)
         self.declare_parameter('auto_reset_on_start', True)
-        self.declare_parameter('csv_log_path', 'lap_times_sakhir.csv')
+        self.declare_parameter('csv_log_path', 'data/lap_times_sakhir.csv')
         self.declare_parameter('min_lap_distance', 280.0)
         self.declare_parameter('min_lap_duration', 20.0)
         self.declare_parameter('gate_radius', 5.0)

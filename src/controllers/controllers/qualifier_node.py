@@ -44,7 +44,7 @@ class QualifierRaceNode(Node):
         self.declare_parameter('target_laps', 10)
         self.declare_parameter('qualifying_attack_laps', 3)
         self.declare_parameter('stop_after_target_laps', True)
-        self.declare_parameter('csv_log_path', 'lap_times_sakhir_qualifier.csv')
+        self.declare_parameter('csv_log_path', 'data/lap_times_sakhir_qualifier.csv')
 
         core_params = {}
         for key, default_val in DEFAULTS_QUALIFIER.items():

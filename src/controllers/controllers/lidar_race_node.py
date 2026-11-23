@@ -41,8 +41,8 @@ class LidarRaceNode(Node):
         self.declare_parameter('stop_after_target_laps', True)
         self.declare_parameter('auto_reset_on_start', True)
         self.declare_parameter('adaptive_pace', True)
-        self.declare_parameter('csv_log_path', 'lap_times_sakhir_v2_fast.csv')
-        self.declare_parameter('gains_csv_path', 'lap_time_gains_sakhir.csv')
+        self.declare_parameter('csv_log_path', 'data/lap_times_sakhir_v2_fast.csv')
+        self.declare_parameter('gains_csv_path', 'data/lap_time_gains_sakhir.csv')
 
         core_params = {}
         for key, default_val in DEFAULTS_V2.items():

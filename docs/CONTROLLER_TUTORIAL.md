@@ -31,8 +31,8 @@ Every command used across the entire project—from initial clone and automated 
 | **5b. Terminal 2: Fast Qualifier AI** | `./run_race.sh qualifier` | `ros2 run controllers qualifier_node` | Runs Version 3 Fast-Start Qualifier AI (`Q-T6` $\rightarrow$ `Q-T8`) + Live GUI Window |
 | **5c. Terminal 2: Qualifier 4-Lap Sprint**| — | `ros2 run controllers qualifier_node --ros-args -p target_laps:=4` | Runs a 4-lap qualifying sprint and performs active steered cooldown stop after Lap 4 |
 | **5d. Terminal 2: Endurance AI (V1)** | `./run_race.sh gap` | `ros2 run controllers gap_node` | Runs Version 1 constant-trim Endurance Champion (`v1.0-stable`) |
-| **6. Switch Track (12 Circuits)** | `./run_race.sh map` *(or `./switch_map.sh`)* | `./switch_map.sh Sakhir_map` *(or `Zandvoort_map`, `Catalunya_map`, etc.)* | Switches active map in `sim.yaml`, sets verified safe start pose `(sx, sy, stheta)` & rebuilds |
-| **7. Headless 10-Lap Benchmark** | `./run_race.sh bench` | `python3 benchmark_sakhir_lidar.py` | Runs 10-lap RK4 physics benchmark in ~15s without RViz2 and writes CSV logs |
+| **6. Switch Track (12 Circuits)** | `./run_race.sh map` *(or `./scripts/switch_map.sh`)* | `./scripts/switch_map.sh Sakhir_map` *(or `Zandvoort_map`, `Catalunya_map`, etc.)* | Switches active map in `sim.yaml`, sets verified safe start pose `(sx, sy, stheta)` & rebuilds |
+| **7. Headless 10-Lap Benchmark** | `./run_race.sh bench` | `python3 scripts/benchmark_sakhir_lidar.py` | Runs 10-lap RK4 physics benchmark in ~15s without RViz2 and writes CSV logs |
 | **8. View Tuning & Reflection Guide** | `./run_race.sh guide` | `less GUIDE_RUN_REFLECT_IMPROVE.md` | Opens the step-by-step Run, Reflect & Improve tuning manual in terminal |
 | **9. Monitor Live ROS 2 Topics** | — | `ros2 topic echo /lap_count` \| `/lap_time` \| `/best_lap_time` \| `/race_telemetry` | Streams live lap counter, lap timer, fastest lap, or summary telemetry in terminal |
 | **10. Manual Keyboard Driving** | — | `ros2 run teleop_twist_keyboard teleop_twist_keyboard` | Manual keyboard control (`i`=forward, `u`=left, `o`=right, `k`=stop) |
@@ -81,25 +81,25 @@ ros2 run controllers gap_node
 
 #### D. Track Switching Commands (All 12 Bundled Official F1Tenth Circuits)
 ```bash
-./switch_map.sh                    # Open interactive 12-track selector menu
-./switch_map.sh Sakhir_map         # 1. Bahrain Sakhir GP (Default Competition Track)
-./switch_map.sh Catalunya_map      # 2. Circuit de Barcelona-Catalunya
-./switch_map.sh Sepang_map         # 3. Sepang International Circuit
-./switch_map.sh Zandvoort_map      # 4. Circuit Zandvoort
-./switch_map.sh BrandsHatch_map    # 5. Brands Hatch Circuit
-./switch_map.sh Budapest_map       # 6. Hungaroring (Budapest)
-./switch_map.sh Oschersleben_map   # 7. Motorsport Arena Oschersleben
-./switch_map.sh SaoPaulo_map       # 8. Interlagos (São Paulo)
-./switch_map.sh Spielberg_map      # 9. Red Bull Ring (Spielberg)
-./switch_map.sh Spielberg_obs_map  # 10. Spielberg with Static Obstacles
-./switch_map.sh levine             # 11. UPenn Levine Hall
-./switch_map.sh levineB            # 12. UPenn Levine Hall Variant B
+./scripts/switch_map.sh                    # Open interactive 12-track selector menu
+./scripts/switch_map.sh Sakhir_map         # 1. Bahrain Sakhir GP (Default Competition Track)
+./scripts/switch_map.sh Catalunya_map      # 2. Circuit de Barcelona-Catalunya
+./scripts/switch_map.sh Sepang_map         # 3. Sepang International Circuit
+./scripts/switch_map.sh Zandvoort_map      # 4. Circuit Zandvoort
+./scripts/switch_map.sh BrandsHatch_map    # 5. Brands Hatch Circuit
+./scripts/switch_map.sh Budapest_map       # 6. Hungaroring (Budapest)
+./scripts/switch_map.sh Oschersleben_map   # 7. Motorsport Arena Oschersleben
+./scripts/switch_map.sh SaoPaulo_map       # 8. Interlagos (São Paulo)
+./scripts/switch_map.sh Spielberg_map      # 9. Red Bull Ring (Spielberg)
+./scripts/switch_map.sh Spielberg_obs_map  # 10. Spielberg with Static Obstacles
+./scripts/switch_map.sh levine             # 11. UPenn Levine Hall
+./scripts/switch_map.sh levineB            # 12. UPenn Levine Hall Variant B
 ```
 
 #### E. Benchmarking, Live Telemetry & Manual Recompilation Commands
 ```bash
 # Run headless 10-lap physics verification benchmark (~15 seconds, no GUI needed)
-./run_race.sh bench                # or: python3 benchmark_sakhir_lidar.py
+./run_race.sh bench                # or: python3 scripts/benchmark_sakhir_lidar.py
 
 # Inspect live ROS 2 telemetry topics while a race is running
 source /opt/ros/humble/setup.bash && source install/setup.bash
@@ -110,9 +110,9 @@ ros2 topic echo /best_lap_time
 ros2 topic echo /race_telemetry
 
 # View completed CSV telemetry logs in terminal
-column -t -s, lap_times_sakhir_v2_fast.csv
-column -t -s, lap_time_gains_sakhir.csv
-column -t -s, lap_times_sakhir_qualifier.csv
+column -t -s, data/lap_times_sakhir_v2_fast.csv
+column -t -s, data/lap_time_gains_sakhir.csv
+column -t -s, data/lap_times_sakhir_qualifier.csv
 
 # Manual clean workspace rebuild after editing code
 source /opt/ros/humble/setup.bash
@@ -130,7 +130,7 @@ source install/setup.bash
 
 ### 🟢 Beginner-Friendly Guide & Navigation
 1. [Visual Map of All Useful Files ("Where Is Everything?")](#1-visual-map-of-all-useful-files-where-is-everything)
-2. [Included 12-Track Official F1Tenth Circuit Catalog (`./switch_map.sh`)](#2-included-12-track-official-f1tenth-circuit-catalog-switch_mapsh)
+2. [Included 12-Track Official F1Tenth Circuit Catalog (`./scripts/switch_map.sh`)](#2-included-12-track-official-f1tenth-circuit-catalog-switch_mapsh)
 3. [Project Overview, Controller Modes & Sakhir GP Circuit Analysis](#3-project-overview-controller-modes--sakhir-gp-circuit-analysis)
 
 ### 🔬 Deep-Dive Engineering Reference ("For the Nerds")
@@ -154,8 +154,8 @@ Use this quick-lookup map to jump directly to the exact file you need:
 | **Install everything automatically (ROS 2 + `f1tenth_gym` + build)** | [`setup_f1tenth.sh`](setup_f1tenth.sh) | Beginners & Fresh Ubuntu |
 | **Launch simulator, RViz2, or any AI controller in 1 command** | [`run_race.sh`](run_race.sh) | Everyone |
 | **All-in-One ROS 2 Launcher (Sim + Bridge + RViz2 + AI)** | [`src/f1tenth_gym_ros/launch/race_launch.py`](src/f1tenth_gym_ros/launch/race_launch.py) | ROS 2 Architecture |
-| **Switch between all 12 included circuits + auto-set safe spawn pose** | [`switch_map.sh`](switch_map.sh) | Everyone |
-| **Run a 10-lap headless physics benchmark (no RViz2 needed)** | [`benchmark_sakhir_lidar.py`](benchmark_sakhir_lidar.py) | Tuning & Verification |
+| **Switch between all 12 included circuits + auto-set safe spawn pose** | [`scripts/switch_map.sh`](scripts/switch_map.sh) | Everyone |
+| **Run a 10-lap headless physics benchmark (no RViz2 needed)** | [`scripts/benchmark_sakhir_lidar.py`](scripts/benchmark_sakhir_lidar.py) | Tuning & Verification |
 | **Inspect / tune the Stable 10-Stage Adaptive LiDAR Controller (V2)** | [`src/controllers/controllers/lidar_race_core.py`](src/controllers/controllers/lidar_race_core.py) & [`lidar_race_node.py`](src/controllers/controllers/lidar_race_node.py) | Engineers / Grading |
 | **Inspect / tune the Fast-Start Qualifier Controller (V3)** | [`src/controllers/controllers/qualifier_core.py`](src/controllers/controllers/qualifier_core.py) & [`qualifier_node.py`](src/controllers/controllers/qualifier_node.py) | Engineers / Qualifying |
 | **Inspect / tune the Core 7-Stage Follow-the-Gap Math Engine** | [`src/controllers/controllers/ftg_core.py`](src/controllers/controllers/ftg_core.py) | Engineers / Oral Defense |
@@ -164,7 +164,7 @@ Use this quick-lookup map to jump directly to the exact file you need:
 | **Change simulator config (active map, spawn pose, 1 vs 2 agents)** | [`src/f1tenth_gym_ros/config/sim.yaml`](src/f1tenth_gym_ros/config/sim.yaml) | Config / Multi-Agent |
 | **Inspect portable username-independent map resolution** | [`src/f1tenth_gym_ros/launch/gym_bridge_launch.py`](src/f1tenth_gym_ros/launch/gym_bridge_launch.py) & [`gym_bridge.py`](src/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py) | ROS 2 Architecture |
 | **Browse all 12 bundled track maps (`.png` + `.yaml`)** | [`src/f1tenth_gym_ros/maps/`](src/f1tenth_gym_ros/maps/) | Track Assets |
-| **View verified 10-lap telemetry & time-gained CSV logs** | [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv), [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv), [`lap_times_sakhir_qualifier.csv`](lap_times_sakhir_qualifier.csv), [`lap_times_sakhir.csv`](lap_times_sakhir.csv) | Competition Evidence |
+| **View verified 10-lap telemetry & time-gained CSV logs** | [`data/lap_times_sakhir_v2_fast.csv`](data/lap_times_sakhir_v2_fast.csv), [`data/lap_time_gains_sakhir.csv`](data/lap_time_gains_sakhir.csv), [`data/lap_times_sakhir_qualifier.csv`](data/lap_times_sakhir_qualifier.csv), [`data/lap_times_sakhir.csv`](data/lap_times_sakhir.csv) | Competition Evidence |
 | **Watch the Sakhir GP demonstration video** | [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) & [`docs/Sakhir_GP_10_Laps_Demo.gif`](docs/Sakhir_GP_10_Laps_Demo.gif) | Part B.4 Video Evidence |
 
 <details>
@@ -174,15 +174,15 @@ Use this quick-lookup map to jump directly to the exact file you need:
 F1Tenth-Repository/
 ├── setup_f1tenth.sh                         # 1-command automated OS/ROS 2/f1tenth_gym/colcon installer
 ├── run_race.sh                              # 1-command interactive launcher (race / sim / lidar / qualifier / gap)
-├── switch_map.sh                            # 1-command interactive track switcher for all 12 official maps
+├── scripts/switch_map.sh                            # 1-command interactive track switcher for all 12 official maps
 ├── GUIDE_RUN_REFLECT_IMPROVE.md             # Master step-by-step Run, Reflect & Improve tuning guide
 ├── README.md                                # Complete beginner-friendly + deep-dive engineering documentation
 ├── CONTROLLER_TUTORIAL.md                   # Synchronized standalone technical tutorial & Oral Defense guide
-├── benchmark_sakhir_lidar.py                # Standalone headless 10-lap + post-Lap-10 cooldown physics verifier
-├── lap_times_sakhir_v2_fast.csv             # Version 2 verified 10-lap telemetry log
-├── lap_time_gains_sakhir.csv                # Per-lap & cumulative time-gained log (T0 -> T9)
-├── lap_times_sakhir_qualifier.csv           # Version 3 Qualifier telemetry log
-├── lap_times_sakhir.csv                     # Version 1 Endurance telemetry log (tag: v1.0-stable)
+├── scripts/benchmark_sakhir_lidar.py                # Standalone headless 10-lap + post-Lap-10 cooldown physics verifier
+├── data/lap_times_sakhir_v2_fast.csv             # Version 2 verified 10-lap telemetry log
+├── data/lap_time_gains_sakhir.csv                # Per-lap & cumulative time-gained log (T0 -> T9)
+├── data/lap_times_sakhir_qualifier.csv           # Version 3 Qualifier telemetry log
+├── data/lap_times_sakhir.csv                     # Version 1 Endurance telemetry log (tag: v1.0-stable)
 ├── docs/
 │   ├── Sakhir_GP_10_Laps_Demo.gif           # Inline browser-playable Sakhir GP demonstration animation
 │   └── comparison_trajectories.png          # Sakhir GP 10-lap racing line & velocity comparison plot
@@ -218,24 +218,24 @@ F1Tenth-Repository/
 
 ---
 
-## 🏁 2. Included 12-Track Official F1Tenth Circuit Catalog (`./switch_map.sh`)
+## 🏁 2. Included 12-Track Official F1Tenth Circuit Catalog (`./scripts/switch_map.sh`)
 
 All maps from both **`Mapas-F1Tenth`** and **`Mapas-F1Tenth-v2`** (plus Spielberg & Levine) are pre-bundled in [`src/f1tenth_gym_ros/maps/`](src/f1tenth_gym_ros/maps/) and installed automatically by `colcon build`. Every track has a **verified drivable starting pose** so the car never spawns inside a wall:
 
 | # | Track Name (`map_path`) | Circuit Description | Resolution (`m/px`) | Verified Start Pose `(sx, sy, stheta)` | Spawn Clearance | One-Command Switch |
 | :-: | :--- | :--- | :---: | :---: | :---: | :--- |
-| 1 | **`Sakhir_map`** ★ | **Bahrain Sakhir GP (Default Competition Track)** | `0.05695` | `(30.78, -22.72, -2.635)` | `1.12 m` | `./switch_map.sh Sakhir_map` |
-| 2 | **`Catalunya_map`** | Circuit de Barcelona-Catalunya (Spain) | `0.06016` | `(0.00, 0.00, -2.145)` | `1.23 m` | `./switch_map.sh Catalunya_map` |
-| 3 | **`Sepang_map`** | Sepang International Circuit (Malaysia) | `0.05944` | `(0.00, 0.00, 0.096)` | `1.22 m` | `./switch_map.sh Sepang_map` |
-| 4 | **`Zandvoort_map`** | Circuit Zandvoort (Netherlands) | `0.05109` | `(0.00, 0.00, 1.220)` | `1.01 m` | `./switch_map.sh Zandvoort_map` |
-| 5 | **`BrandsHatch_map`** | Brands Hatch Circuit (United Kingdom) | `0.05005` | `(0.00, 0.00, 0.279)` | `1.27 m` | `./switch_map.sh BrandsHatch_map` |
-| 6 | **`Budapest_map`** | Hungaroring / Budapest (Hungary) | `0.06446` | `(0.00, 0.00, -0.618)` | `1.25 m` | `./switch_map.sh Budapest_map` |
-| 7 | **`Oschersleben_map`** | Motorsport Arena Oschersleben (Germany) | `0.04295` | `(0.00, 0.00, -0.248)` | `0.95 m` | `./switch_map.sh Oschersleben_map` |
-| 8 | **`SaoPaulo_map`** | Interlagos / São Paulo (Brazil) | `0.04877` | `(0.00, 0.00, -1.258)` | `1.10 m` | `./switch_map.sh SaoPaulo_map` |
-| 9 | **`Spielberg_map`** | Red Bull Ring / Spielberg (Austria) | `0.05796` | `(0.00, 0.00, 0.000)` | `1.09 m` | `./switch_map.sh Spielberg_map` |
-| 10 | **`Spielberg_obs_map`** | Red Bull Ring with Static Obstacles | `0.05796` | `(0.00, 0.00, 0.000)` | `1.09 m` | `./switch_map.sh Spielberg_obs_map` |
-| 11 | **`levine`** | UPenn Levine Hall (Indoor Hallway) | `0.05000` | `(0.00, 0.00, 0.000)` | `0.67 m` | `./switch_map.sh levine` |
-| 12 | **`levineB`** | UPenn Levine Hall Variant B | `0.05000` | `(0.00, 0.00, 0.000)` | `0.82 m` | `./switch_map.sh levineB` |
+| 1 | **`Sakhir_map`** ★ | **Bahrain Sakhir GP (Default Competition Track)** | `0.05695` | `(30.78, -22.72, -2.635)` | `1.12 m` | `./scripts/switch_map.sh Sakhir_map` |
+| 2 | **`Catalunya_map`** | Circuit de Barcelona-Catalunya (Spain) | `0.06016` | `(0.00, 0.00, -2.145)` | `1.23 m` | `./scripts/switch_map.sh Catalunya_map` |
+| 3 | **`Sepang_map`** | Sepang International Circuit (Malaysia) | `0.05944` | `(0.00, 0.00, 0.096)` | `1.22 m` | `./scripts/switch_map.sh Sepang_map` |
+| 4 | **`Zandvoort_map`** | Circuit Zandvoort (Netherlands) | `0.05109` | `(0.00, 0.00, 1.220)` | `1.01 m` | `./scripts/switch_map.sh Zandvoort_map` |
+| 5 | **`BrandsHatch_map`** | Brands Hatch Circuit (United Kingdom) | `0.05005` | `(0.00, 0.00, 0.279)` | `1.27 m` | `./scripts/switch_map.sh BrandsHatch_map` |
+| 6 | **`Budapest_map`** | Hungaroring / Budapest (Hungary) | `0.06446` | `(0.00, 0.00, -0.618)` | `1.25 m` | `./scripts/switch_map.sh Budapest_map` |
+| 7 | **`Oschersleben_map`** | Motorsport Arena Oschersleben (Germany) | `0.04295` | `(0.00, 0.00, -0.248)` | `0.95 m` | `./scripts/switch_map.sh Oschersleben_map` |
+| 8 | **`SaoPaulo_map`** | Interlagos / São Paulo (Brazil) | `0.04877` | `(0.00, 0.00, -1.258)` | `1.10 m` | `./scripts/switch_map.sh SaoPaulo_map` |
+| 9 | **`Spielberg_map`** | Red Bull Ring / Spielberg (Austria) | `0.05796` | `(0.00, 0.00, 0.000)` | `1.09 m` | `./scripts/switch_map.sh Spielberg_map` |
+| 10 | **`Spielberg_obs_map`** | Red Bull Ring with Static Obstacles | `0.05796` | `(0.00, 0.00, 0.000)` | `1.09 m` | `./scripts/switch_map.sh Spielberg_obs_map` |
+| 11 | **`levine`** | UPenn Levine Hall (Indoor Hallway) | `0.05000` | `(0.00, 0.00, 0.000)` | `0.67 m` | `./scripts/switch_map.sh levine` |
+| 12 | **`levineB`** | UPenn Levine Hall Variant B | `0.05000` | `(0.00, 0.00, 0.000)` | `0.82 m` | `./scripts/switch_map.sh levineB` |
 
 ### How Portable Zero-Config `sim.yaml` Resolution Works
 In the original F1Tenth template, hardcoding `/home/<username>/F1Tenth-Repository/...` inside `sim.yaml` broke every time another user cloned the repository. We upgraded [`setup.py`](src/f1tenth_gym_ros/setup.py), [`gym_bridge_launch.py`](src/f1tenth_gym_ros/launch/gym_bridge_launch.py), and [`gym_bridge.py`](src/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py) so that:
@@ -313,7 +313,7 @@ flowchart TB
         NODE["LidarRaceNode / QualifierRaceNode\n(lidar_race_node.py / qualifier_node.py)"]
         CORE["RealLidarRaceCore / QualifierLidarCore\n& FollowGapCore (Pure NumPy)"]
         GUI["RaceTelemetryGUI Window\n(telemetry_gui.py - 10 Hz Tkinter)"]
-        CSV["CSV Telemetry Logger\n(lap_times_sakhir_v2_fast.csv\n& lap_time_gains_sakhir.csv)"]
+        CSV["CSV Telemetry Logger\n(data/lap_times_sakhir_v2_fast.csv\n& data/lap_time_gains_sakhir.csv)"]
         NODE <--> CORE
         NODE --> GUI
         NODE --> CSV
@@ -485,7 +485,7 @@ colcon build --symlink-install
 | **Test 1 — Consecutive Collision-Free Laps** | `10 / 10 laps` (`0 Collisions` + Active Steered Cooldown Stop to `0.00 m/s`) | ✅ Completed |
 | **Test 2 — Fastest Single-Lap Time (Live-ROS-Verified)** | **`38.410 s`** (`qualifier_node` `Q-T8`) / **`38.490 s`** (`lidar_race_node` `T8`) / **`38.891 s`** (Live RViz2) | ✅ Completed |
 | **Single-Lap Time Gained vs. Sighting Lap 1** | **`+5.270 s`** (`43.760 s` $\rightarrow$ `38.490 s` in Adaptive Mode) | ✅ Verified |
-| **Cumulative Time Saved Across 10 Laps** | **`+38.600 s`** (Logged to [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv)) | ✅ Verified |
+| **Cumulative Time Saved Across 10 Laps** | **`+38.600 s`** (Logged to [`data/lap_time_gains_sakhir.csv`](data/lap_time_gains_sakhir.csv)) | ✅ Verified |
 | **Distance Traveled per Lap (Racing Line)** | `~438.9 m / lap` (`4,389.3 m` over 10 laps via `/ego_racecar/odom`) | ✅ Verified |
 | **Peak Velocity on Main Straight** | **`16.22 m/s`** (`58.4 km/h`) | ✅ Verified |
 | **Global Minimum Wall Clearance** | **`0.494 m` – `0.593 m`** (`0.966 m` during post-Lap-10 cooldown stop) | ✅ Verified |

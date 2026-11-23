@@ -1,0 +1,2 @@
+lap_number,pace_trim,lap_time_sec,time_gained_vs_lap1_sec,delta_vs_prev_lap_sec,cumulative_time_saved_sec,trim_min_speed_mps,trim_max_speed_mps,trim_a_lat_max,min_wall_clearance_m
+1,T0,43.221,+0.000,+0.000,+0.000,4.20,16.20,9.00,0.622

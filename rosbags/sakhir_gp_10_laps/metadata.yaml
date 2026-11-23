@@ -1,0 +1,98 @@
+rosbag2_bagfile_information:
+  version: 5
+  storage_identifier: sqlite3
+  duration:
+    nanoseconds: 410621528842
+  starting_time:
+    nanoseconds_since_epoch: 1795430193804934227
+  message_count: 290893
+  topics_with_message_count:
+    - topic_metadata:
+        name: /lap_hud_markers
+        type: visualization_msgs/msg/MarkerArray
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 3829
+    - topic_metadata:
+        name: /ego_racecar/odom
+        type: nav_msgs/msg/Odometry
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 41063
+    - topic_metadata:
+        name: /tf_static
+        type: tf2_msgs/msg/TFMessage
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 1\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 1
+    - topic_metadata:
+        name: /scan
+        type: sensor_msgs/msg/LaserScan
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 41063
+    - topic_metadata:
+        name: /drive
+        type: ackermann_msgs/msg/AckermannDriveStamped
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 40685
+    - topic_metadata:
+        name: /tf
+        type: tf2_msgs/msg/TFMessage
+        serialization_format: cdr
+        offered_qos_profiles: "- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false\n- history: 3\n  depth: 0\n  reliability: 1\n  durability: 2\n  deadline:\n    sec: 9223372036\n    nsec: 854775807\n  lifespan:\n    sec: 9223372036\n    nsec: 854775807\n  liveliness: 1\n  liveliness_lease_duration:\n    sec: 9223372036\n    nsec: 854775807\n  avoid_ros_namespace_conventions: false"
+      message_count: 164252
+  compression_format: zstd
+  compression_mode: FILE
+  relative_file_paths:
+    - sakhir_gp_10_laps_0.db3.zstd
+    - sakhir_gp_10_laps_1.db3.zstd
+    - sakhir_gp_10_laps_2.db3.zstd
+    - sakhir_gp_10_laps_3.db3.zstd
+    - sakhir_gp_10_laps_4.db3.zstd
+    - sakhir_gp_10_laps_5.db3.zstd
+    - sakhir_gp_10_laps_6.db3.zstd
+  files:
+    - path: sakhir_gp_10_laps_0.db3
+      starting_time:
+        nanoseconds_since_epoch: 1795430193804934227
+      duration:
+        nanoseconds: 65514372445
+      message_count: 46294
+    - path: sakhir_gp_10_laps_1.db3
+      starting_time:
+        nanoseconds_since_epoch: 1795430259325542721
+      duration:
+        nanoseconds: 62730530246
+      message_count: 44505
+    - path: sakhir_gp_10_laps_2.db3
+      starting_time:
+        nanoseconds_since_epoch: 1795430322056451570
+      duration:
+        nanoseconds: 62749433699
+      message_count: 44516
+    - path: sakhir_gp_10_laps_3.db3
+      starting_time:
+        nanoseconds_since_epoch: 1795430384806127770
+      duration:
+        nanoseconds: 62759793172
+      message_count: 44525
+    - path: sakhir_gp_10_laps_4.db3
+      starting_time:
+        nanoseconds_since_epoch: 1795430447566254945
+      duration:
+        nanoseconds: 62729765264
+      message_count: 44503
+    - path: sakhir_gp_10_laps_5.db3
+      starting_time:
+        nanoseconds_since_epoch: 1795430510296335012
+      duration:
+        nanoseconds: 62739672168
+      message_count: 44509
+    - path: sakhir_gp_10_laps_6.db3
+      starting_time:
+        nanoseconds_since_epoch: 1795430573036294782
+      duration:
+        nanoseconds: 31390168287
+      message_count: 22041

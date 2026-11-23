@@ -83,25 +83,30 @@ ros2 run controllers gap_node
 
 #### D. Track Switching Commands (All 12 Bundled Official F1Tenth Circuits)
 ```bash
-./switch_map.sh                    # Open interactive 12-track selector menu
-./switch_map.sh Sakhir_map         # 1. Bahrain Sakhir GP (Default Competition Track)
-./switch_map.sh Catalunya_map      # 2. Circuit de Barcelona-Catalunya
-./switch_map.sh Sepang_map         # 3. Sepang International Circuit
-./switch_map.sh Zandvoort_map      # 4. Circuit Zandvoort
-./switch_map.sh BrandsHatch_map    # 5. Brands Hatch Circuit
-./switch_map.sh Budapest_map       # 6. Hungaroring (Budapest)
-./switch_map.sh Oschersleben_map   # 7. Motorsport Arena Oschersleben
-./switch_map.sh SaoPaulo_map       # 8. Interlagos (São Paulo)
-./switch_map.sh Spielberg_map      # 9. Red Bull Ring (Spielberg)
-./switch_map.sh Spielberg_obs_map  # 10. Spielberg with Static Obstacles
-./switch_map.sh levine             # 11. UPenn Levine Hall
-./switch_map.sh levineB            # 12. UPenn Levine Hall Variant B
+./scripts/switch_map.sh                    # Open interactive 12-track selector menu
+./scripts/switch_map.sh Sakhir_map         # 1. Bahrain Sakhir GP (Default Competition Track)
+./scripts/switch_map.sh Catalunya_map      # 2. Circuit de Barcelona-Catalunya
+./scripts/switch_map.sh Sepang_map         # 3. Sepang International Circuit
+./scripts/switch_map.sh Zandvoort_map      # 4. Circuit Zandvoort
+./scripts/switch_map.sh BrandsHatch_map    # 5. Brands Hatch Circuit
+./scripts/switch_map.sh Budapest_map       # 6. Hungaroring (Budapest)
+./scripts/switch_map.sh Oschersleben_map   # 7. Motorsport Arena Oschersleben
+./scripts/switch_map.sh SaoPaulo_map       # 8. Interlagos (São Paulo)
+./scripts/switch_map.sh Spielberg_map      # 9. Red Bull Ring (Spielberg)
+./scripts/switch_map.sh Spielberg_obs_map  # 10. Spielberg with Static Obstacles
+./scripts/switch_map.sh levine             # 11. UPenn Levine Hall
+./scripts/switch_map.sh levineB            # 12. UPenn Levine Hall Variant B
 ```
 
-#### E. Benchmarking, Live Telemetry & Manual Recompilation Commands
+#### E. Benchmarking, Live Telemetry & Rosbag Replay
 ```bash
 # Run headless 10-lap physics verification benchmark (~15 seconds, no GUI needed)
-./run_race.sh bench                # or: python3 benchmark_sakhir_lidar.py
+./run_race.sh bench                # or: python3 scripts/benchmark_sakhir_lidar.py
+
+# Replay or inspect the recorded 10-lap Sakhir GP ROS 2 rosbag
+source /opt/ros/humble/setup.bash
+ros2 bag info rosbags/sakhir_gp_10_laps
+ros2 bag play rosbags/sakhir_gp_10_laps
 
 # Inspect live ROS 2 telemetry topics while a race is running
 source /opt/ros/humble/setup.bash && source install/setup.bash
@@ -112,9 +117,9 @@ ros2 topic echo /best_lap_time
 ros2 topic echo /race_telemetry
 
 # View completed CSV telemetry logs in terminal
-column -t -s, lap_times_sakhir_v2_fast.csv
-column -t -s, lap_time_gains_sakhir.csv
-column -t -s, lap_times_sakhir_qualifier.csv
+column -t -s, data/lap_times_sakhir_v2_fast.csv
+column -t -s, data/lap_time_gains_sakhir.csv
+column -t -s, data/lap_times_sakhir_qualifier.csv
 
 # Manual clean workspace rebuild after editing code
 source /opt/ros/humble/setup.bash
@@ -124,7 +129,7 @@ source install/setup.bash
 ```
 
 > 📖 **Looking to tune parameters or understand telemetry?**
-> Read the complete [**Master Guide to Run, Reflect, and Improve (GUIDE_RUN_REFLECT_IMPROVE.md)**](GUIDE_RUN_REFLECT_IMPROVE.md) (or run `./run_race.sh guide`) for full telemetry explanations, CSV columns, and the Symptom $\rightarrow$ Diagnosis $\rightarrow$ Fix tuning decision matrix!
+> Read the complete [**Master Guide to Run, Reflect, and Improve (docs/GUIDE_RUN_REFLECT_IMPROVE.md)**](docs/GUIDE_RUN_REFLECT_IMPROVE.md) (or run `./run_race.sh guide`) for full telemetry explanations, CSV columns, and the Symptom $\rightarrow$ Diagnosis $\rightarrow$ Fix tuning decision matrix!
 
 ---
 
@@ -152,12 +157,12 @@ Use this quick-lookup map to jump directly to the exact file you need:
 
 | What Do You Want To Do? | Exact File / Script | Who It's For |
 | :--- | :--- | :--- |
-| **Step-by-Step Run, Reflect & Improve Master Guide** | [`GUIDE_RUN_REFLECT_IMPROVE.md`](GUIDE_RUN_REFLECT_IMPROVE.md) | Everyone (Zero-Search Guide) |
+| **Step-by-Step Run, Reflect & Improve Master Guide** | [`docs/GUIDE_RUN_REFLECT_IMPROVE.md`](docs/GUIDE_RUN_REFLECT_IMPROVE.md) | Everyone (Zero-Search Guide) |
 | **Install everything automatically (ROS 2 + `f1tenth_gym` + build)** | [`setup_f1tenth.sh`](setup_f1tenth.sh) | Beginners & Fresh Ubuntu |
 | **Launch simulator, RViz2, or any AI controller in 1 command** | [`run_race.sh`](run_race.sh) | Everyone |
 | **All-in-One ROS 2 Launcher (Sim + Bridge + RViz2 + AI)** | [`src/f1tenth_gym_ros/launch/race_launch.py`](src/f1tenth_gym_ros/launch/race_launch.py) | ROS 2 Architecture |
-| **Switch between all 12 included circuits + auto-set safe spawn pose** | [`switch_map.sh`](switch_map.sh) | Everyone |
-| **Run a 10-lap headless physics benchmark (no RViz2 needed)** | [`benchmark_sakhir_lidar.py`](benchmark_sakhir_lidar.py) | Tuning & Verification |
+| **Switch between all 12 included circuits + auto-set safe spawn pose** | [`scripts/switch_map.sh`](scripts/switch_map.sh) | Everyone |
+| **Run a 10-lap headless physics benchmark (no RViz2 needed)** | [`scripts/benchmark_sakhir_lidar.py`](scripts/benchmark_sakhir_lidar.py) | Tuning & Verification |
 | **Inspect / tune the Stable 10-Stage Adaptive LiDAR Controller (V2)** | [`src/controllers/controllers/lidar_race_core.py`](src/controllers/controllers/lidar_race_core.py) & [`lidar_race_node.py`](src/controllers/controllers/lidar_race_node.py) | Engineers / Grading |
 | **Inspect / tune the Fast-Start Qualifier Controller (V3)** | [`src/controllers/controllers/qualifier_core.py`](src/controllers/controllers/qualifier_core.py) & [`qualifier_node.py`](src/controllers/controllers/qualifier_node.py) | Engineers / Qualifying |
 | **Inspect / tune the Core 7-Stage Follow-the-Gap Math Engine** | [`src/controllers/controllers/ftg_core.py`](src/controllers/controllers/ftg_core.py) | Engineers / Oral Defense |
@@ -166,31 +171,39 @@ Use this quick-lookup map to jump directly to the exact file you need:
 | **Change simulator config (active map, spawn pose, 1 vs 2 agents)** | [`src/f1tenth_gym_ros/config/sim.yaml`](src/f1tenth_gym_ros/config/sim.yaml) | Config / Multi-Agent |
 | **Inspect portable username-independent map resolution** | [`src/f1tenth_gym_ros/launch/gym_bridge_launch.py`](src/f1tenth_gym_ros/launch/gym_bridge_launch.py) & [`gym_bridge.py`](src/f1tenth_gym_ros/f1tenth_gym_ros/gym_bridge.py) | ROS 2 Architecture |
 | **Browse all 12 bundled track maps (`.png` + `.yaml`)** | [`src/f1tenth_gym_ros/maps/`](src/f1tenth_gym_ros/maps/) | Track Assets |
-| **View verified 10-lap telemetry & time-gained CSV logs** | [`lap_times_sakhir_v2_fast.csv`](lap_times_sakhir_v2_fast.csv), [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv), [`lap_times_sakhir_qualifier.csv`](lap_times_sakhir_qualifier.csv), [`lap_times_sakhir.csv`](lap_times_sakhir.csv) | Competition Evidence |
+| **Replay 10-lap Sakhir GP ROS 2 Rosbag (`zstd` compressed)** | [`rosbags/sakhir_gp_10_laps/`](rosbags/sakhir_gp_10_laps/) ([Guide](rosbags/README.md)) | Competition Evidence |
+| **View verified 10-lap telemetry & time-gained CSV logs** | [`data/lap_times_sakhir_v2_fast.csv`](data/lap_times_sakhir_v2_fast.csv), [`data/lap_time_gains_sakhir.csv`](data/lap_time_gains_sakhir.csv), [`data/lap_times_sakhir_qualifier.csv`](data/lap_times_sakhir_qualifier.csv), [`data/lap_times_sakhir.csv`](data/lap_times_sakhir.csv) | Competition Evidence |
 | **Watch the Sakhir GP demonstration video** | [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) & [`docs/Sakhir_GP_10_Laps_Demo.gif`](docs/Sakhir_GP_10_Laps_Demo.gif) | Part B.4 Video Evidence |
 
 <details>
-<summary><strong>📂 Click to expand Full Repository Directory Tree</strong></summary>
+<summary><strong>📂 Click to expand Clean Repository Directory Tree</strong></summary>
 
 ```text
 F1Tenth-Repository/
+├── README.md                                # Complete beginner-friendly + deep-dive engineering documentation
 ├── setup_f1tenth.sh                         # 1-command automated OS/ROS 2/f1tenth_gym/colcon installer
 ├── run_race.sh                              # 1-command interactive launcher (race / sim / lidar / qualifier / gap)
-├── switch_map.sh                            # 1-command interactive track switcher for all 12 official maps
-├── GUIDE_RUN_REFLECT_IMPROVE.md             # Master step-by-step Run, Reflect & Improve tuning guide
-├── README.md                                # Complete beginner-friendly + deep-dive engineering documentation
-├── CONTROLLER_TUTORIAL.md                   # Synchronized standalone technical tutorial & Oral Defense guide
-├── benchmark_sakhir_lidar.py                # Standalone headless 10-lap + post-Lap-10 cooldown physics verifier
-├── lap_times_sakhir_v2_fast.csv             # Version 2 verified 10-lap telemetry log
-├── lap_time_gains_sakhir.csv                # Per-lap & cumulative time-gained log (T0 -> T9)
-├── lap_times_sakhir_qualifier.csv           # Version 3 Qualifier telemetry log
-├── lap_times_sakhir.csv                     # Version 1 Endurance telemetry log (tag: v1.0-stable)
-├── docs/
+├── data/                                    # Verified 10-lap CSV telemetry & time-gain logs
+│   ├── lap_times_sakhir_v2_fast.csv         # Version 2 verified 10-lap telemetry log
+│   ├── lap_time_gains_sakhir.csv            # Per-lap & cumulative time-gained log (T0 -> T9)
+│   ├── lap_times_sakhir_qualifier.csv       # Version 3 Qualifier telemetry log
+│   └── lap_times_sakhir.csv                 # Version 1 Endurance telemetry log (tag: v1.0-stable)
+├── docs/                                    # Guides, tutorials, plots & inline demo animation
+│   ├── GUIDE_RUN_REFLECT_IMPROVE.md         # Master step-by-step Run, Reflect & Improve tuning guide
+│   ├── CONTROLLER_TUTORIAL.md               # Standalone technical tutorial & Oral Defense guide
+│   ├── README_es.md                         # Spanish README translation
 │   ├── Sakhir_GP_10_Laps_Demo.gif           # Inline browser-playable Sakhir GP demonstration animation
 │   └── comparison_trajectories.png          # Sakhir GP 10-lap racing line & velocity comparison plot
+├── rosbags/                                 # Compressed ROS 2 Humble rosbag recordings
+│   ├── README.md                            # Instructions for `ros2 bag info` and `ros2 bag play`
+│   └── sakhir_gp_10_laps/                   # 10-lap Sakhir GP run (/scan, /drive, /odom, /tf, /lap_hud_markers)
+├── scripts/                                 # Utility & benchmark scripts
+│   ├── switch_map.sh                        # 1-command interactive track switcher for all 12 official maps
+│   └── benchmark_sakhir_lidar.py            # Standalone headless 10-lap + post-Lap-10 cooldown physics verifier
 ├── videos/
-│   ├── Sakhir_GP_10_Laps_Demonstration.mp4  # Full high-resolution Sakhir GP competition demonstration video
+│   ├── Sakhir_GP_10_Laps_Demonstration.mp4  # Full high-resolution 1080p60 Sakhir GP demonstration video
 │   └── ...                                  # Reference simulator setup & teleoperation MP4 videos
+├── img/                                     # Architecture & system diagrams
 ├── Laboratories/                            # Official F1Tenth Labs 1–7 reference guides
 └── src/
     ├── controllers/                         # ROS 2 Autonomous Racing Controllers Package
@@ -487,7 +500,7 @@ colcon build --symlink-install
 | **Test 1 — Consecutive Collision-Free Laps** | `10 / 10 laps` (`0 Collisions` + Active Steered Cooldown Stop to `0.00 m/s`) | ✅ Completed |
 | **Test 2 — Fastest Single-Lap Time (Live-ROS-Verified)** | **`38.410 s`** (`qualifier_node` `Q-T8`) / **`38.490 s`** (`lidar_race_node` `T8`) / **`38.891 s`** (Live RViz2) | ✅ Completed |
 | **Single-Lap Time Gained vs. Sighting Lap 1** | **`+5.270 s`** (`43.760 s` $\rightarrow$ `38.490 s` in Adaptive Mode) | ✅ Verified |
-| **Cumulative Time Saved Across 10 Laps** | **`+38.600 s`** (Logged to [`lap_time_gains_sakhir.csv`](lap_time_gains_sakhir.csv)) | ✅ Verified |
+| **Cumulative Time Saved Across 10 Laps** | **`+38.600 s`** (Logged to [`data/lap_time_gains_sakhir.csv`](data/lap_time_gains_sakhir.csv)) | ✅ Verified |
 | **Distance Traveled per Lap (Racing Line)** | `~438.9 m / lap` (`4,389.3 m` over 10 laps via `/ego_racecar/odom`) | ✅ Verified |
 | **Peak Velocity on Main Straight** | **`16.22 m/s`** (`58.4 km/h`) | ✅ Verified |
 | **Global Minimum Wall Clearance** | **`0.494 m` – `0.593 m`** (`0.966 m` during post-Lap-10 cooldown stop) | ✅ Verified |
@@ -530,6 +543,7 @@ colcon build --symlink-install
 
 - ▶️ **Watch Full Video on YouTube**: [https://www.youtube.com/watch?v=ZLSqsSyalms](https://www.youtube.com/watch?v=ZLSqsSyalms)
 - 📥 **Play / Download Full High-Resolution MP4**: [`videos/Sakhir_GP_10_Laps_Demonstration.mp4`](videos/Sakhir_GP_10_Laps_Demonstration.mp4) ([Direct Raw MP4 Stream](https://github.com/Bishal-yeti/F1Tenth-Repository/raw/main/videos/Sakhir_GP_10_Laps_Demonstration.mp4))
+- 📦 **ROS 2 Bag Recording (10 Laps, `zstd` compressed)**: [`rosbags/sakhir_gp_10_laps/`](rosbags/sakhir_gp_10_laps/) — Inspect & replay with `ros2 bag info rosbags/sakhir_gp_10_laps` and `ros2 bag play rosbags/sakhir_gp_10_laps` ([Rosbag Guide](rosbags/README.md))
 
 ---
 
