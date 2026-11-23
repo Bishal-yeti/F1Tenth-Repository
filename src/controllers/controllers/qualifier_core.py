@@ -20,13 +20,13 @@ from controllers.lidar_race_core import DEFAULTS_V2, PACE_TRIMS, apply_straighta
 
 QUALIFIER_TRIMS = [
     PACE_TRIMS[0],  # Index 0: Emergency safety anchor T0
-    PACE_TRIMS[4],  # Index 1: Lap 1 Fast Standing-Start Q-T4 (verified 10/10 at 0-20ms delay)
-    PACE_TRIMS[6],  # Index 2: Q-T6
-    PACE_TRIMS[8],  # Index 3: Q-T8
-    PACE_TRIMS[9],  # Index 4: Q-T9 (~39.6s)
+    PACE_TRIMS[3],  # Index 1: Lap 1 Fast Standing-Start Q-T3 (verified 0-30ms Turn 1 latency)
+    PACE_TRIMS[5],  # Index 2: Q-T5
+    PACE_TRIMS[7],  # Index 3: Q-T7
+    PACE_TRIMS[9],  # Index 4: Q-T9 (~39.1s)
 ]
 
-QUALIFIER_LABELS = ["Q-SAFE(T0)", "Q-T4", "Q-T6", "Q-T8", "Q-T9"]
+QUALIFIER_LABELS = ["Q-SAFE(T0)", "Q-T3", "Q-T5", "Q-T7", "Q-T9"]
 
 
 class QualifierLidarCore(FollowGapCore):

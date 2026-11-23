@@ -121,7 +121,8 @@ class RaceTelemetryGUI:
         try:
             root = tk.Tk()
             root.title(self.title)
-            root.geometry("860x600")
+            root.geometry("1020x620")
+            root.minsize(960, 560)
             root.configure(bg="#0f172a")
 
             # Header frame
